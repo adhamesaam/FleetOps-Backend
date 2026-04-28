@@ -25,8 +25,17 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Modules\StartFromHere\Controllers\StartController;
+use App\Modules\StartFromHere\Middleware\StartDemoMiddleware;
 
-Route::prefix('api/v1')->middleware('auth:sanctum')->group(function () {
+/*
+ * 🔄 رحلة البيانات (Data Journey):
+ * 1. [المستخدم/Postman] -> يطلب مسار معين (مثال: GET /api/v1/demo).
+ * 2. [routes.php] -> يستلم الطلب ويطابق المسار، ثم يوجهه للملف المطلوب.
+ * 3. [Middleware] -> يمر الطلب أولاً عبر StartDemoMiddleware (والبوابات الأخرى كـ auth).
+ * 4. [Controller] -> إذا مر بسلام، يصل الطلب إلى الدالة المحددة في StartController.
+ */
+///Route::prefix('api/v1')->middleware(['auth:sanctum', StartDemoMiddleware::class])->group(function () {
+Route::prefix('api/v1')->middleware([StartDemoMiddleware::class])->group(function () {
 
     Route::prefix('demo')->group(function () {
 

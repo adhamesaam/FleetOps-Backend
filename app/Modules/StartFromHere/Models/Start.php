@@ -19,6 +19,12 @@
  *   Controllers/StartController.php← الـ Controller
  *   Requests/StartRequest.php      ← الـ Request Validation
  *   routes.php                     ← الـ Routes
+ * 
+ * 🔄 رحلة البيانات (Data Journey):
+ * 1. [الـ Repository] -> يستدعي هذا الـ Model لجلب أو تعديل البيانات.
+ * 2. [الـ Model] -> يترجم الأوامر إلى استعلامات SQL ويسألها لقاعدة البيانات (جدول starts).
+ * 3. [قاعدة البيانات] -> تُرجع النتيجة للـ Model.
+ * 4. [الـ Model] -> يحول النتيجة إلى كائن (Object) ذكي يمكن استخدامه بسهولة ويُعيده للـ Repository.
  * ══════════════════════════════════════════════════════════════════════════════
  */
 

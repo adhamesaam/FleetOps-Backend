@@ -24,6 +24,13 @@
  * Response Format الموحد:
  *   Success: ['success' => true,  'message' => '...', 'data' => $data]
  *   Error:   ['success' => false, 'message' => '...']
+ * 
+ * 🔄 رحلة البيانات (Data Journey):
+ * 1. [الـ Route] -> يوجه الطلب (Request) إلى الـ Controller بعد مروره بالـ Middleware.
+ * 2. [الـ FormRequest] -> يتم التحقق من صحة البيانات (Validation) قبل دخولها الـ Controller.
+ * 3. [الـ Controller] -> يستلم البيانات النظيفة، ويستدعي الـ Service (الـ Business Logic).
+ * 4. [الـ Service] -> يقوم بمعالجة البيانات وإعادتها.
+ * 5. [الـ Controller] -> يُغلف البيانات الناتجة في Response بصيغة JSON ويُعيدها للمستخدم/Postman.
  * ══════════════════════════════════════════════════════════════════════════════
  */
 

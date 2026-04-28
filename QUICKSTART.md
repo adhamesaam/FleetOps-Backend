@@ -23,7 +23,9 @@ docker compose up -d --build
 docker compose exec app php artisan key:generate --force
 docker compose exec app php artisan migrate --force
 ```
-
+### for linux if you already built the containers 
+./docker.sh up
+./docker.sh down
 ### 2. Verify
 ```powershell
 curl http://localhost:8000/api/health

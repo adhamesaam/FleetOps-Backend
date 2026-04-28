@@ -21,6 +21,16 @@
  *   - update($id, $data)      ← تحديث سجل
  *   - delete($id)             ← حذف سجل (Soft Delete إذا موجود)
  *   - advancedFilter($filters)← بحث متقدم بفلاتر متعددة
+ * 
+ * المبدأ:
+ *   ✅ يقبل Model في الـ Constructor
+ *   ✅ يوفر دوال (Methods) تنفذ استعلامات محددة (find, create, delete, إلخ)
+ * 
+ * 🔄 رحلة البيانات (Data Journey):
+ * 1. [الـ Service] -> يطلب بيانات أو يرسل بيانات للحفظ ويستدعي الـ Repository.
+ * 2. [الـ Repository] -> يستخدم الـ Model (كـ Eloquent) لتكوين الجملة الاستعلامية (SQL Query).
+ * 3. [قاعدة البيانات] -> تُنفذ الطلب وتُعيد النتيجة.
+ * 4. [الـ Repository] -> يُغلف النتيجة كـ Collection أو Model Instance ويعيدها للـ Service دون أن يكترث بالـ Business Logic.
  * ══════════════════════════════════════════════════════════════════════════════
  */
 
