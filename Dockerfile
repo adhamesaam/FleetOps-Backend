@@ -32,8 +32,16 @@ RUN curl -O https://download.microsoft.com/download/1/f/f/1fffb537-26ab-4947-a46
     && rm -f msodbcsql18_18.2.2.1-1_amd64.apk mssql-tools18_18.2.1.1-1_amd64.apk
 
 # Install PHP SQL Server extensions
-RUN pecl install sqlsrv pdo_sqlsrv \
-    && docker-php-ext-enable sqlsrv pdo_sqlsrv
+
+#old one that failed with Khalid
+#RUN pecl install sqlsrv pdo_sqlsrv \
+#    && docker-php-ext-enable sqlsrv pdo_sqlsrv
+
+RUN curl -O https://pecl.php.net/get/sqlsrv-5.12.0.tgz \
+    && curl -O https://pecl.php.net/get/pdo_sqlsrv-5.12.0.tgz \
+    && pecl install sqlsrv-5.12.0.tgz pdo_sqlsrv-5.12.0.tgz \
+    && docker-php-ext-enable sqlsrv pdo_sqlsrv \
+    && rm sqlsrv-5.12.0.tgz pdo_sqlsrv-5.12.0.tgz
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer

@@ -3,14 +3,25 @@
 ## 🚀 Get Started in 3 Steps
 
 ### 1. Build and Start
+**Windows:**
 ```powershell
 .\docker.ps1 install
 ```
+**Linux:**
+```bash
+./docker.sh install
+```
 Or manually:
+
 ```powershell
 docker-compose up -d --build
 docker-compose exec app php artisan key:generate --force
 docker-compose exec app php artisan migrate --force
+
+```bash
+docker compose up -d --build
+docker compose exec app php artisan key:generate --force
+docker compose exec app php artisan migrate --force
 ```
 
 ### 2. Verify
@@ -31,26 +42,50 @@ curl http://localhost:8000/api/health
 # View logs
 .\docker.ps1 logs
 
+Linux:
+./docker.sh logs
+
 # Run migrations
 .\docker.ps1 migrate
+
+Linux:
+./docker.sh migrate
 
 # Access container shell
 .\docker.ps1 shell
 
+Linux:
+./docker.sh shell
+
 # Stop containers
 .\docker.ps1 down
+
+Linux:
+./docker.sh down
 
 # Restart containers
 .\docker.ps1 restart
 
+Linux:
+./docker.sh restart
+
 # Clear caches
 .\docker.ps1 clear
+
+Linux:
+./docker.sh clear
 
 # Run tests
 .\docker.ps1 test
 
+Linux:
+./docker.sh test
+
 # Show all commands
 .\docker.ps1 help
+
+Linux:
+./docker.sh help
 ```
 
 ## 🔧 Troubleshooting
@@ -66,10 +101,16 @@ curl http://localhost:8000/api/health
 # Check SQL Server status
 docker-compose logs sqlserver
 
+Linux:
+docker compose logs sqlserver
+
 # Verify database exists
 .\docker.ps1 db
 SELECT name FROM sys.databases;
 GO
+
+Linux:
+docker compose exec sqlserver sqlcmd -S localhost -U sa -P "Fleetops12345678!" -C -Q "SELECT name FROM sys.databases"
 ```
 
 ### Permission errors
@@ -77,6 +118,10 @@ GO
 # On Windows (usually not needed)
 icacls storage /grant Everyone:F /t
 icacls bootstrap\cache /grant Everyone:F /t
+
+Linux:
+sudo chown -R 1000:1000 storage bootstrap/cache
+
 ```
 
 ## 📊 Performance Features
