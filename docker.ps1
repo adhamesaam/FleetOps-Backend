@@ -16,17 +16,20 @@ function Show-Help {
     Write-Host "  up          - Start all containers"
     Write-Host "  down        - Stop all containers"
     Write-Host "  restart     - Restart all containers"
+    Write-Host "  rebuild     - Rebuild and start containers"
     Write-Host "  logs        - Show logs from all containers"
     Write-Host "  logs-app    - Show logs from app container"
     Write-Host "  logs-db     - Show logs from database"
     Write-Host "  shell       - Access app container shell"
     Write-Host "  db          - Access SQL Server CLI"
     Write-Host "  migrate     - Run database migrations"
-    Write-Host "  fresh       - Fresh database with migrations"
+    Write-Host "  seed        - Seed the database with test data"
+    Write-Host "  fresh       - Fresh database with migrations and seeds"
     Write-Host "  optimize    - Optimize Laravel caches"
     Write-Host "  clear       - Clear all Laravel caches"
     Write-Host "  test        - Run tests"
     Write-Host "  status      - Show container status"
+    Write-Host "  health      - Check API health"
     Write-Host "  clean       - Remove all containers and volumes"
     Write-Host ""
 }
@@ -35,61 +38,26 @@ function Install {
     Write-Host "Building and starting FleetOps Backend..." -ForegroundColor Cyan
     docker-compose up -d --build
     
-    Write-Host "Waiting for SQL Server to be ready..." -ForegroundColor Yellow
-    Start-Sleep -Seconds 30
-    
-    Write-Host "Creating database..." -ForegroundColor Yellow
-    docker-compose exec -T sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "Fleetops12345678!" -C -Q "IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'fleetops') CREATE DATABASE fleetops"
-    
-    Write-Host "Creating .env file..." -ForegroundColor Yellow
-    docker-compose exec app sh -c 'if [ ! -f .env ]; then cp .env.example .env 2>/dev/null || cat > .env << "EOF"
-APP_NAME=FleetOps
-APP_ENV=production
-APP_KEY=
-APP_DEBUG=false
-APP_URL=http://localhost
-
-LOG_CHANNEL=stack
-LOG_LEVEL=info
-
-DB_CONNECTION=sqlsrv
-DB_HOST=sqlserver
-DB_PORT=1433
-DB_DATABASE=fleetops
-DB_USERNAME=sa
-DB_PASSWORD=Fleetops12345678!
-DB_ENCRYPT=optional
-DB_TRUST_SERVER_CERTIFICATE=true
-
-SESSION_DRIVER=database
-SESSION_LIFETIME=120
-
-CACHE_STORE=database
-QUEUE_CONNECTION=database
-
-BROADCAST_CONNECTION=log
-FILESYSTEM_DISK=local
-
-MAIL_MAILER=log
-MAIL_FROM_ADDRESS="noreply@fleetops.com"
-MAIL_FROM_NAME="FleetOps"
-EOF
-fi'
-    
-    Write-Host "Generating application key..." -ForegroundColor Yellow
-    docker-compose exec app php artisan key:generate --force
+    Write-Host "Waiting for services to be ready..." -ForegroundColor Yellow
+    Start-Sleep -Seconds 20
     
     Write-Host "Running migrations..." -ForegroundColor Yellow
     docker-compose exec app php artisan migrate --force
     
-    Write-Host "Optimizing application..." -ForegroundColor Yellow
+    Write-Host "Seeding database with test data..." -ForegroundColor Yellow
+    docker-compose exec app php artisan db:seed --force
+    
+    Write-Host "Clearing and optimizing caches..." -ForegroundColor Yellow
+    docker-compose exec app php artisan cache:clear
+    docker-compose exec app php artisan config:clear
     docker-compose exec app php artisan config:cache
     docker-compose exec app php artisan route:cache
     
     Write-Host ""
     Write-Host "Setup complete!" -ForegroundColor Green
     Write-Host "API available at: http://localhost:8000" -ForegroundColor Cyan
-    Write-Host "Health check: http://localhost:8000/api/health" -ForegroundColor Cyan
+    Write-Host "Health check: http://localhost:8000/up" -ForegroundColor Cyan
+    Write-Host "Login endpoint: http://localhost:8000/api/v1/auth/login" -ForegroundColor Cyan
 }
 
 function Start-Containers {
@@ -108,6 +76,12 @@ function Restart-Containers {
     Write-Host "Restarting containers..." -ForegroundColor Cyan
     docker-compose restart
     Write-Host "Containers restarted!" -ForegroundColor Green
+}
+
+function Rebuild-Containers {
+    Write-Host "Rebuilding and starting containers..." -ForegroundColor Cyan
+    docker-compose up -d --build
+    Write-Host "Containers rebuilt and started!" -ForegroundColor Green
 }
 
 function Show-Logs {
@@ -136,10 +110,17 @@ function Run-Migrations {
     Write-Host "Migrations complete!" -ForegroundColor Green
 }
 
+function Seed-Database {
+    Write-Host "Seeding database with test data..." -ForegroundColor Cyan
+    docker-compose exec app php artisan db:seed --force
+    Write-Host "Database seeded!" -ForegroundColor Green
+}
+
 function Fresh-Database {
-    Write-Host "Refreshing database..." -ForegroundColor Cyan
+    Write-Host "Refreshing database with fresh migrations and seeds..." -ForegroundColor Cyan
     docker-compose exec app php artisan migrate:fresh --force
-    Write-Host "Database refreshed!" -ForegroundColor Green
+    docker-compose exec app php artisan db:seed --force
+    Write-Host "Database refreshed and seeded!" -ForegroundColor Green
 }
 
 function Optimize-App {
@@ -168,6 +149,20 @@ function Show-Status {
     docker-compose ps
 }
 
+function Check-Health {
+    Write-Host "Checking API health..." -ForegroundColor Cyan
+    try {
+        $response = Invoke-WebRequest -Uri "http://localhost:8000/up" -UseBasicParsing -ErrorAction Stop
+        if ($response.StatusCode -eq 200) {
+            Write-Host "✅ API is healthy!" -ForegroundColor Green
+            Write-Host "Status Code: $($response.StatusCode)" -ForegroundColor Green
+        }
+    } catch {
+        Write-Host "❌ API is not responding properly" -ForegroundColor Red
+        Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
+    }
+}
+
 function Clean-All {
     Write-Host "WARNING: This will remove all containers and volumes!" -ForegroundColor Red
     $confirm = Read-Host "Are you sure? (yes/no)"
@@ -185,17 +180,20 @@ switch ($Command.ToLower()) {
     "up"        { Start-Containers }
     "down"      { Stop-Containers }
     "restart"   { Restart-Containers }
+    "rebuild"   { Rebuild-Containers }
     "logs"      { Show-Logs }
     "logs-app"  { Show-AppLogs }
     "logs-db"   { Show-DbLogs }
     "shell"     { Enter-Shell }
     "db"        { Enter-Database }
     "migrate"   { Run-Migrations }
+    "seed"      { Seed-Database }
     "fresh"     { Fresh-Database }
     "optimize"  { Optimize-App }
     "clear"     { Clear-Caches }
     "test"      { Run-Tests }
     "status"    { Show-Status }
+    "health"    { Check-Health }
     "clean"     { Clean-All }
     default     { Show-Help }
 }

@@ -1,4 +1,22 @@
 # FleetOps Backend - Quick Start Guide
+### 1. Build and Start
+.\docker.ps1 install
+
+# Rebuild containers with fresh build
+.\docker.ps1 rebuild
+
+# Seed database with test data
+.\docker.ps1 seed
+
+# Fresh database with migrations and seeds
+.\docker.ps1 fresh
+
+# Check API health
+.\docker.ps1 health
+
+
+
+
 
 ## 🚀 Get Started in 3 Steps
 

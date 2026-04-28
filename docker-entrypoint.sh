@@ -65,6 +65,13 @@ echo "Database connection established!"
 echo "Running migrations..."
 php artisan migrate --force
 
+# Clear all caches
+echo "Clearing application caches..."
+php artisan cache:clear
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+
 # Cache configuration for better performance
 echo "Optimizing application..."
 php artisan config:cache

@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
 
+        // ── Sanctum Middleware ──
+        $middleware->statefulApi();
+
         // ── Step 2a: Append SystemAuditMiddleware to the API middleware group ──
         // Runs automatically on every API request that is non-GET.
         $middleware->appendToGroup('api', [
