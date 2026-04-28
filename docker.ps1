@@ -41,6 +41,9 @@ function Install {
     Write-Host "Waiting for services to be ready..." -ForegroundColor Yellow
     Start-Sleep -Seconds 20
     
+    Write-Host "Ensuring database exists..." -ForegroundColor Yellow
+    docker-compose exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "Fleetops12345678!" -C -Q "IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'fleetops') CREATE DATABASE fleetops"
+    
     Write-Host "Running migrations..." -ForegroundColor Yellow
     docker-compose exec app php artisan migrate --force
     

@@ -46,20 +46,26 @@ if ! grep -q "APP_KEY=base64:" .env; then
     php artisan key:generate --force
 fi
 
-# Wait for database to be ready
-echo "Waiting for database connection..."
+# Wait for SQL Server to be ready
+echo "Waiting for SQL Server connection..."
 MAX_RETRIES=30
 RETRY_COUNT=0
-until php artisan db:show >/dev/null 2>&1; do
+# We connect to master (default) to check if the server is up
+until /opt/mssql-tools18/bin/sqlcmd -S "$DB_HOST" -U "$DB_USERNAME" -P "$DB_PASSWORD" -C -Q "SELECT 1" >/dev/null 2>&1; do
     RETRY_COUNT=$((RETRY_COUNT + 1))
     if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
-        echo "Database connection failed after $MAX_RETRIES attempts"
+        echo "SQL Server connection failed after $MAX_RETRIES attempts"
         exit 1
     fi
-    echo "Database not ready, waiting... (attempt $RETRY_COUNT/$MAX_RETRIES)"
+    echo "SQL Server not ready, waiting... (attempt $RETRY_COUNT/$MAX_RETRIES)"
     sleep 2
 done
-echo "Database connection established!"
+echo "SQL Server connection established!"
+
+# Create database if it doesn't exist
+echo "Ensuring database '$DB_DATABASE' exists..."
+/opt/mssql-tools18/bin/sqlcmd -S "$DB_HOST" -U "$DB_USERNAME" -P "$DB_PASSWORD" -C -Q "IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = '$DB_DATABASE') CREATE DATABASE [$DB_DATABASE]"
+echo "Database '$DB_DATABASE' is ready!"
 
 # Run migrations
 echo "Running migrations..."
