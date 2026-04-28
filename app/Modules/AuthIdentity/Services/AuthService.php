@@ -96,8 +96,8 @@ class AuthService
         // 4. Reset failed attempts + update last login
         $this->userRepository->updateLastLogin($user->user_id);
 
-        // 5. Revoke previous tokens + issue new Sanctum token
-        $user->tokens()->delete();
+        // 5. Revoke previous tokens (Commented out to allow multiple devices/sessions)
+        // $user->tokens()->delete(); // Uncomment this line if you want to enforce single-device login
         $plainToken = $user->createToken('fleet_auth_token')->plainTextToken;
 
         // 6. Write audit log

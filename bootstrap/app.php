@@ -19,7 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Modules\LoggingAudit\Middlewares\SystemAuditMiddleware::class,
         ]);
 
-        // ── Step 2b: Register named middleware aliases ──
+        // ── Step 2c: Register named middleware aliases ──
         // Allows controllers/routes to use short names instead of full class paths.
         $middleware->alias([
             'role'          => \App\Modules\AuthIdentity\Middlewares\CheckRoleMiddleware::class,
@@ -27,6 +27,21 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated. يرجى التأكد من إرسال التوكن الصحيح.',
+                ], 401);
+            }
+        });
+        $exceptions->render(function (\Symfony\Component\Routing\Exception\RouteNotFoundException $e, \Illuminate\Http\Request $request) {
+            if ($e->getMessage() === 'Route [login] not defined.' && $request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated. يرجى إرسال التوكن الصحيح في الـ Headers.',
+                ], 401);
+            }
+        });
     })->create();
 
