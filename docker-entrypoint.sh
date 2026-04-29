@@ -3,6 +3,12 @@ set -e
 
 echo "Starting FleetOps Backend..."
 
+# Fix permissions - ensure storage and cache directories are writable
+echo "Fixing directory permissions..."
+mkdir -p storage/logs bootstrap/cache
+chmod -R 775 storage bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache /var/www/html
+
 # Create .env file from environment variables if it doesn't exist
 if [ ! -f .env ]; then
     echo "Creating .env file from environment variables..."
@@ -39,6 +45,10 @@ MAIL_FROM_ADDRESS="noreply@fleetops.com"
 MAIL_FROM_NAME="FleetOps"
 EOF
 fi
+
+# Fix permissions on .env file
+chmod 644 .env
+chown www-data:www-data .env
 
 # Generate application key if not set
 if ! grep -q "APP_KEY=base64:" .env; then
@@ -78,6 +88,9 @@ php artisan config:cache
 php artisan route:cache
 
 echo "FleetOps Backend is ready!"
+
+# Start PHP-FPM (will drop to www-data user via php-fpm.conf configuration)
+exec php-fpm --nodaemonize
 
 # Start PHP-FPM
 exec php-fpm
