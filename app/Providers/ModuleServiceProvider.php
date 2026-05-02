@@ -159,7 +159,8 @@ class ModuleServiceProvider extends ServiceProvider
         $this->app->singleton(
             \App\Modules\RouteDispatch\Services\RouteOptimizationService::class,
             fn($app) => new \App\Modules\RouteDispatch\Services\RouteOptimizationService(
-                $app->make(\App\Modules\RouteDispatch\Repositories\RouteRepository::class)
+                $app->make(\App\Modules\RouteDispatch\Repositories\RouteRepository::class),
+                $app->make(\App\Modules\OrderManagement\Repositories\OrderRepository::class)
             )
         );
 

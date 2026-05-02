@@ -13,6 +13,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\RouteDispatch\Services\DispatchService;
 use App\Modules\RouteDispatch\Services\RouteOptimizationService;
 use App\Modules\RouteDispatch\Requests\DispatchRequest;
+use App\Modules\RouteDispatch\Requests\ClusterOrdersRequest;
 use App\Modules\RouteDispatch\Requests\PriorityScoreRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -97,12 +98,13 @@ class DispatchController extends Controller
      * التجميع الجغرافي للطلبات (RD-02 / fn02)
      * POST /api/v1/dispatch/cluster-orders
      */
-    public function clusterOrders(Request $request): JsonResponse
+    public function clusterOrders(ClusterOrdersRequest $request): JsonResponse
     {
-        // TODO: Cluster orders into zones
-        // 1. Validate: order_ids (required|array), cluster_count (required|integer|min:1)
-        // $clusters = $this->optimizationService->clusterOrders($request->order_ids, $request->cluster_count)
-        // return response()->json(['success' => true, 'data' => $clusters])
+        $validatedData = $request->validated();
+
+        $clusters = $this->optimizationService->clusterOrders($validatedData['order_ids']);
+
+        return response()->json(['success' => true, 'data' => $clusters]);
     }
 
     /**

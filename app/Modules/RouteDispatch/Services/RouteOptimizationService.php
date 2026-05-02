@@ -9,16 +9,19 @@
 
 namespace App\Modules\RouteDispatch\Services;
 
+use App\Modules\OrderManagement\Repositories\OrderRepository;
 use App\Modules\RouteDispatch\Repositories\RouteRepository;
 use Exception;
 
 class RouteOptimizationService
 {
     protected RouteRepository $routeRepository;
+    protected OrderRepository $orderRepository;
 
-    public function __construct(RouteRepository $routeRepository)
+    public function __construct(RouteRepository $routeRepository, OrderRepository $orderRepository)
     {
         $this->routeRepository = $routeRepository;
+        $this->orderRepository = $orderRepository;
     }
 
     /**
@@ -64,16 +67,84 @@ class RouteOptimizationService
     /**
      * التجميع الجغرافي للطلبات (RD-02 / fn02)
      * @param array $orderIds
-     * @param int $clusterCount  (number of vehicles/zones)
-     * @return array  clusters of order IDs
+     * @return array clusters in shape: [{color, zone, orders: [...]}]
      */
-    public function clusterOrders(array $orderIds, int $clusterCount): array
+    public function clusterOrders(array $orderIds): array
     {
-        // TODO: Geographic clustering (k-means or grid-based)
-        // 1. Get coordinates for all orders
-        // 2. Apply k-means clustering or grid partitioning
-        //    OR use Google Routes API cluster functionality
-        // 3. Return array of clusters: [['zone_id' => 1, 'order_ids' => [...]]]
+        $requestedOrderIds = array_values(array_unique(array_map('intval', $orderIds)));
+
+        if ($requestedOrderIds === []) {
+            return [];
+        }
+
+        $orders = $this->orderRepository->findByIds($requestedOrderIds)
+            ->load([
+                'customer' => fn ($query) => $query->select('customer_id', 'address'),
+                'customer.user' => fn ($query) => $query->select('user_id', 'name'),
+            ]);
+
+        $ordersByArea = [];
+
+        foreach ($orders as $order) {
+            $area = trim((string) ($order->Area ?? ''));
+            $zoneKey = $area !== '' ? mb_strtolower($area) : 'unknown';
+
+            if (!array_key_exists($zoneKey, $ordersByArea)) {
+                $ordersByArea[$zoneKey] = [];
+            }
+
+            $ordersByArea[$zoneKey][] = $order;
+        }
+
+        $palette = [
+            '#f59e0b',
+            '#10b981',
+            '#3b82f6',
+            '#ef4444',
+            '#06b6d4',
+            '#84cc16',
+            '#f97316',
+            '#6366f1',
+            '#14b8a6',
+            '#eab308',
+        ];
+
+        $clusters = [];
+        $colorIndex = 0;
+
+        foreach ($ordersByArea as $zoneKey => $zoneOrders) {
+            if ($zoneKey === 'unknown') {
+                $unknownClusterCount = max(1, (int) ceil(sqrt(count($zoneOrders))));
+                $chunkSize = (int) ceil(count($zoneOrders) / $unknownClusterCount);
+                $unknownChunks = array_chunk($zoneOrders, max(1, $chunkSize));
+
+                foreach ($unknownChunks as $index => $chunk) {
+                    $clusters[] = [
+                        'color' => $palette[$colorIndex % count($palette)],
+                        'zone' => 'unknown-' . ($index + 1),
+                        'orders' => array_map(
+                            static fn ($order) => $order->toArray(),
+                            $chunk
+                        ),
+                    ];
+                    $colorIndex++;
+                }
+
+                continue;
+            }
+
+            $clusters[] = [
+                'color' => $palette[$colorIndex % count($palette)],
+                'zone' => $zoneKey,
+                'orders' => array_map(
+                    static fn ($order) => $order->toArray(),
+                    $zoneOrders
+                ),
+            ];
+            $colorIndex++;
+        }
+
+        return $clusters;
     }
 
     /**
