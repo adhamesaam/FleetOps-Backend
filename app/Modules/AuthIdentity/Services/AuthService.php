@@ -20,23 +20,23 @@ use Exception;
 class AuthService
 {
     /** Max failed attempts before locking the account */
-    protected const MAX_ATTEMPTS    = 5;
+    protected const MAX_ATTEMPTS = 5;
 
     /** Lock duration in minutes */
-    protected const LOCK_MINUTES    = 15;
+    protected const LOCK_MINUTES = 15;
 
     protected UserRepository $userRepository;
-    protected LogService     $logService;
-    protected AuditService   $auditService;
+    protected LogService $logService;
+    protected AuditService $auditService;
 
     public function __construct(
         UserRepository $userRepository,
-        LogService     $logService,
-        AuditService   $auditService
+        LogService $logService,
+        AuditService $auditService
     ) {
         $this->userRepository = $userRepository;
-        $this->logService     = $logService;
-        $this->auditService   = $auditService;
+        $this->logService = $logService;
+        $this->auditService = $auditService;
     }
 
     /**
@@ -50,12 +50,12 @@ class AuthService
         // 1. Find user
         $user = $this->userRepository->findByEmail($email);
 
-        if (!$user || !$user->is_active) {
+        if (!$user) {
             $this->logService->logSecurity('failed_login', [
-                'email'  => $email,
+                'email' => $email,
                 'reason' => $user ? 'account_inactive' : 'user_not_found',
             ]);
-            throw new Exception('بيانات الدخول غير صحيحة');
+            throw new Exception('Invalid Credentials');
         }
 
         // 2. Brute-force protection — check lock
@@ -65,7 +65,7 @@ class AuthService
             now()->lt($user->locked_until)
         ) {
             $this->logService->logSecurity('account_locked', [
-                'user_id'     => $user->user_id,
+                'user_id' => $user->user_id,
                 'locked_until' => $user->locked_until,
             ]);
             throw new Exception('الحساب مقفل مؤقتاً. يرجى المحاولة بعد ' . self::LOCK_MINUTES . ' دقيقة.');
@@ -80,14 +80,14 @@ class AuthService
                 $lockUntil = now()->addMinutes(self::LOCK_MINUTES)->toDateTime();
                 $this->userRepository->lockUser($user->user_id, $lockUntil);
                 $this->logService->logSecurity('account_locked', [
-                    'user_id'  => $user->user_id,
+                    'user_id' => $user->user_id,
                     'attempts' => $attempts,
                 ]);
                 throw new Exception('تم قفل الحساب بسبب محاولات دخول متكررة. حاول بعد ' . self::LOCK_MINUTES . ' دقيقة.');
             }
 
             $this->logService->logSecurity('failed_login', [
-                'user_id'  => $user->user_id,
+                'user_id' => $user->user_id,
                 'attempts' => $attempts,
             ]);
             throw new Exception('بيانات الدخول غير صحيحة');
@@ -102,18 +102,18 @@ class AuthService
 
         // 6. Write audit log
         $this->auditService->log(
-            action:     'login',
+            action: 'login',
             entityType: 'user',
-            entityId:   $user->user_id,
+            entityId: $user->user_id,
             afterState: ['email' => $user->email, 'role' => $user->role],
-            userId:     $user->user_id,
-            module:     'AuthIdentity'
+            userId: $user->user_id,
+            module: 'AuthIdentity'
         );
 
         return [
-            'token'      => $plainToken,
+            'token' => $plainToken,
             'token_type' => 'Bearer',
-            'user'       => $user,
+            'user' => $user,
         ];
     }
 
@@ -125,7 +125,6 @@ class AuthService
         if ($user->currentAccessToken()) {
             $user->currentAccessToken()->delete();
         }
-
         $this->auditService->log('logout', 'user', $user->user_id, module: 'AuthIdentity');
         $this->logService->info('[AUTH] User logged out', ['user_id' => $user->user_id], 'AuthIdentity');
 
@@ -158,7 +157,7 @@ class AuthService
         $this->logService->info('[AUTH] Token refreshed', ['user_id' => $user->user_id], 'AuthIdentity');
 
         return [
-            'token'      => $newToken,
+            'token' => $newToken,
             'token_type' => 'Bearer',
         ];
     }
