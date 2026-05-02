@@ -397,10 +397,10 @@ class ModuleServiceProvider extends ServiceProvider
     {
         $moduleRoutes = glob(app_path('Modules/*/routes.php'));
         foreach ($moduleRoutes as $routeFile) {
-            $this->loadRoutesFrom($routeFile);
+            // التعديل هنا: غلفنا الروتس بمجموعة api
+            \Illuminate\Support\Facades\Route::middleware('api')->group($routeFile);
         }
     }
-
     /**
      * الحصول على قائمة الموديولات المسجلة
      * @return array

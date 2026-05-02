@@ -29,9 +29,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'driver.active' => \App\Modules\AuthIdentity\Middlewares\CheckDriverActiveMiddleware::class,
         ]);
 
-        $middleware->api(append: [
-            \App\Modules\LoggingAudit\Middlewares\SystemAuditMiddleware::class,
-        ]);
+        /*  $middleware->api(append: [
+          //   \App\Modules\LoggingAudit\Middlewares\SystemAuditMiddleware::class,
+         ]);*/
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {

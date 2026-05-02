@@ -25,7 +25,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Modules\StartFromHere\Controllers\StartController;
-use App\Modules\StartFromHere\Middleware\StartDemoMiddleware;
+// use App\Modules\StartFromHere\Middleware\StartDemoMiddleware;
+use App\Modules\LoggingAudit\Middlewares\SystemAuditMiddleware;
 
 /*
  * 🔄 رحلة البيانات (Data Journey):
@@ -35,7 +36,7 @@ use App\Modules\StartFromHere\Middleware\StartDemoMiddleware;
  * 4. [Controller] -> إذا مر بسلام، يصل الطلب إلى الدالة المحددة في StartController.
  */
 ///Route::prefix('api/v1')->middleware(['auth:sanctum', StartDemoMiddleware::class])->group(function () {
-Route::prefix('api/v1')->middleware([StartDemoMiddleware::class])->group(function () {
+Route::prefix('api/v1')->middleware([SystemAuditMiddleware::class])->group(function () {
 
     Route::prefix('demo')->group(function () {
 
