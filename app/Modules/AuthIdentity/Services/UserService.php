@@ -12,6 +12,7 @@ namespace App\Modules\AuthIdentity\Services;
 use App\Modules\AuthIdentity\Repositories\UserRepository;
 use App\Modules\LoggingAudit\Services\LogService;
 use App\Modules\LoggingAudit\Services\AuditService;
+use App\Modules\Notification\Services\NotificationService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Exception;
@@ -19,17 +20,21 @@ use Exception;
 class UserService
 {
     protected UserRepository $userRepository;
-    protected LogService     $logService;
-    protected AuditService   $auditService;
+    protected LogService $logService;
+    protected AuditService $auditService;
+    protected NotificationService $notificationService;
 
     public function __construct(
         UserRepository $userRepository,
-        LogService     $logService,
-        AuditService   $auditService
+        LogService $logService,
+        AuditService $auditService,
+        NotificationService $notificationService
     ) {
         $this->userRepository = $userRepository;
-        $this->logService     = $logService;
-        $this->auditService   = $auditService;
+        $this->logService = $logService;
+        $this->auditService = $auditService;
+        $this->notificationService = $notificationService;
+
     }
 
     /**
@@ -57,11 +62,19 @@ class UserService
         $user = $this->userRepository->create($data);
 
         $this->auditService->log(
-            'created', 'user', $user->user_id,
+            'created',
+            'user',
+            $user->user_id,
             afterState: $data,
             module: 'AuthIdentity'
         );
         $this->logService->info('[USER] User created', ['user_id' => $user->user_id], 'AuthIdentity');
+        $payload = [
+            'title' => 'Welcome to FleetOps',
+            'message' => 'Your account has been created with role: ' . $user->role
+        ];
+
+        $this->notificationService->send($user->user_id, 'status_update', $payload);
 
         return $user;
     }
@@ -81,7 +94,9 @@ class UserService
         $after = $this->userRepository->findById($id)->toArray();
 
         $this->auditService->log(
-            'updated', 'user', $id,
+            'updated',
+            'user',
+            $id,
             beforeState: $before,
             afterState: $after,
             module: 'AuthIdentity'
@@ -104,7 +119,9 @@ class UserService
         $result = $this->userRepository->delete($id);
 
         $this->auditService->log(
-            'deleted', 'user', $id,
+            'deleted',
+            'user',
+            $id,
             beforeState: $before,
             module: 'AuthIdentity'
         );

@@ -6,9 +6,9 @@ use Illuminate\Foundation\Configuration\Middleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        api: __DIR__.'/../routes/api.php',
-        commands: __DIR__.'/../routes/console.php',
+        web: __DIR__ . '/../routes/web.php',
+        api: __DIR__ . '/../routes/api.php',
+        commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -25,8 +25,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // ── Step 2c: Register named middleware aliases ──
         // Allows controllers/routes to use short names instead of full class paths.
         $middleware->alias([
-            'role'          => \App\Modules\AuthIdentity\Middlewares\CheckRoleMiddleware::class,
+            'role' => \App\Modules\AuthIdentity\Middlewares\CheckRoleMiddleware::class,
             'driver.active' => \App\Modules\AuthIdentity\Middlewares\CheckDriverActiveMiddleware::class,
+        ]);
+
+        $middleware->api(append: [
+            \App\Modules\LoggingAudit\Middlewares\SystemAuditMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

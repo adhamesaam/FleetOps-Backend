@@ -67,15 +67,15 @@ Route::prefix('api/v1')->group(function () {
         Route::prefix('users')->group(function () {
 
             // Specialized routes MUST come before /{id} to avoid conflicts
-            Route::get('/active',           [UserController::class, 'active'])->name('users.active');
-            Route::get('/role/drivers',     [UserController::class, 'drivers'])->name('users.drivers');
+            Route::get('/active', [UserController::class, 'active'])->name('users.active');
+            Route::get('/role/drivers', [UserController::class, 'drivers'])->name('users.drivers');
             Route::get('/role/dispatchers', [UserController::class, 'dispatchers'])->name('users.dispatchers');
             Route::get('/role/fleet-managers', [UserController::class, 'fleetManagers'])->name('users.fleet-managers');
-            Route::get('/role/mechanics',   [UserController::class, 'mechanics'])->name('users.mechanics');
+            Route::get('/role/mechanics', [UserController::class, 'mechanics'])->name('users.mechanics');
 
             // CRUD
-            Route::get('/',     [UserController::class, 'index'])->name('users.index');
-            Route::post('/',    [UserController::class, 'store'])->name('users.store');
+            Route::get('/', [UserController::class, 'index'])->name('users.index');
+            Route::post('/', [UserController::class, 'store'])->name('users.store');
             Route::get('/{id}', [UserController::class, 'show'])->name('users.show')->where('id', '[0-9]+');
             Route::put('/{id}', [UserController::class, 'update'])->name('users.update')->where('id', '[0-9]+');
             Route::delete('/{id}', [UserController::class, 'destroy'])->name('users.destroy')->where('id', '[0-9]+');
@@ -83,17 +83,17 @@ Route::prefix('api/v1')->group(function () {
 
         // ── Role & Permission Management (RBAC) ───────────────────────────
 
-        Route::prefix('roles')->group(function () {
+        // Route::prefix('roles')->group(function () {
 
-            // Specialized routes first
-            Route::get('/type/non-system', [RoleController::class, 'nonSystemRoles'])->name('roles.non-system');
+        //     // Specialized routes first
+        //     Route::get('/type/non-system', [RoleController::class, 'nonSystemRoles'])->name('roles.non-system');
 
-            // CRUD
-            Route::get('/',     [RoleController::class, 'index'])->name('roles.index');
-            Route::post('/',    [RoleController::class, 'store'])->name('roles.store');
-            Route::get('/{id}', [RoleController::class, 'show'])->name('roles.show')->where('id', '[0-9]+');
-            Route::put('/{id}', [RoleController::class, 'update'])->name('roles.update')->where('id', '[0-9]+');
-            Route::delete('/{id}', [RoleController::class, 'destroy'])->name('roles.destroy')->where('id', '[0-9]+');
-        });
+        //     // CRUD
+        //     Route::get('/',     [RoleController::class, 'index'])->name('roles.index');
+        //     Route::post('/',    [RoleController::class, 'store'])->name('roles.store');
+        //     Route::get('/{id}', [RoleController::class, 'show'])->name('roles.show')->where('id', '[0-9]+');
+        //     Route::put('/{id}', [RoleController::class, 'update'])->name('roles.update')->where('id', '[0-9]+');
+        //     Route::delete('/{id}', [RoleController::class, 'destroy'])->name('roles.destroy')->where('id', '[0-9]+');
+        // });
     });
 });
