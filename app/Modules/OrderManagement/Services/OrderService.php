@@ -31,6 +31,18 @@ class OrderService
         // TODO: return $this->orderRepository->findByIdOrFail($id);
     }
 
+
+    /**
+     * Get all orders filtered by status, with customer details eagerly loaded
+     * @param string $status (e.g., 'Pending', 'InTransit', 'Delivered')
+     * @return Collection Orders with customer names and details
+     */
+    public function getOrdersByStatus(string $status)
+    { 
+        return $this->orderRepository->findByStatus($status);
+    }
+    
+
     public function createOrder(array $data)
     {
         // TODO: Create order

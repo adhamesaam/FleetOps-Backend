@@ -58,6 +58,13 @@ class OrderController extends Controller
         // TODO: Soft delete order (only if pending)
     }
 
+    /** GET /api/v1/orders/{status} */
+    public function getByStatus(string $status): JsonResponse
+    {
+        return response()->json(['success' => true, 'data' => $this->orderService->getOrdersByStatus($status)]);
+    }
+
+
     /**
      * تحديث حالة الطلب (State Machine)
      * PATCH /api/v1/orders/{id}/status

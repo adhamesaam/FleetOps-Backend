@@ -35,6 +35,7 @@ Route::prefix('api/v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/{id}', [OrderController::class, 'show'])->name('orders.show')->where('id', '[0-9]+');
         Route::put('/{id}', [OrderController::class, 'update'])->name('orders.update')->where('id', '[0-9]+');
         Route::delete('/{id}', [OrderController::class, 'destroy'])->name('orders.destroy')->where('id', '[0-9]+');
+        Route::get('/{status}', [OrderController::class, 'getByStatus'])->name('orders.by-status')->where('status', '[a-zA-Z]+');
 
         // Order State Machine Actions
         Route::patch('/{id}/status',     [OrderController::class, 'updateStatus'])->name('orders.update-status')->where('id', '[0-9]+');
