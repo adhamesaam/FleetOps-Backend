@@ -56,6 +56,11 @@ class Vehicle extends Model
         return $query->where('status', 'Active');
     }
 
+    public function scopeAvailable($query)
+    {
+        return $query->where('status', 'Active');
+    }
+
     public function scopeInMaintenance($query)
     {
         return $query->where('status', 'Maintenance');

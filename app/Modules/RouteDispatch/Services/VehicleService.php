@@ -33,7 +33,7 @@ class VehicleService
 
     public function getAvailableVehicles()
     {
-        // TODO: return $this->vehicleRepository->getAvailableVehicles();
+        return $this->vehicleRepository->getAvailableVehicles();
     }
 
     public function createVehicle(array $data)

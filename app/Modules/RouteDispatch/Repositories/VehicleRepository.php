@@ -22,7 +22,7 @@ class VehicleRepository extends BaseRepository
 
     public function getAvailableVehicles(): Collection
     {
-        // TODO: return $this->model->available()->get();
+        return $this->model->available()->get();
     }
 
     public function getByType(string $type): Collection

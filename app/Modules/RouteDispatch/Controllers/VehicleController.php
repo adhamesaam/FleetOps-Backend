@@ -12,6 +12,7 @@ namespace App\Modules\RouteDispatch\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\RouteDispatch\Services\VehicleService;
 use App\Modules\RouteDispatch\Requests\VehicleRequest;
+use Exception;
 use Illuminate\Http\JsonResponse;
 
 class VehicleController extends Controller
@@ -59,7 +60,20 @@ class VehicleController extends Controller
      */
     public function available(): JsonResponse
     {
-        // TODO: return $this->vehicleService->getAvailableVehicles()
+        try {
+            $vehicles = $this->vehicleService->getAvailableVehicles();
+
+            return response()->json([
+                'success' => true,
+                'data' => $vehicles,
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors' => $e->getTrace(),
+            ], 500);
+        }
     }
 
     /**
