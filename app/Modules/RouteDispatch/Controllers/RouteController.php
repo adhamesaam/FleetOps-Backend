@@ -13,6 +13,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\RouteDispatch\Services\RouteService;
 use App\Modules\RouteDispatch\Services\RouteOptimizationService;
 use App\Modules\RouteDispatch\Requests\RouteRequest;
+use App\Modules\RouteDispatch\Requests\OptimizeRouteRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -81,12 +82,29 @@ class RouteController extends Controller
 
     /**
      * تحسين ترتيب المحطات (TSP - fn06)
-     * POST /api/v1/dispatch/routes/{id}/optimize
+     * POST /api/v1/dispatch/routes/optimize
      */
-    public function optimizeRoute(int $id): JsonResponse
+    public function optimizeRoute(OptimizeRouteRequest $request): JsonResponse
     {
-        // TODO: $stops = $this->optimizationService->optimizeStopSequence($id)
-        // return response()->json(['success' => true, 'message' => 'تم تحسين المسار', 'data' => $stops]);
+        $payload = $request->validated();
+
+        try {
+            $clustersOut = $this->optimizationService->optimizeClusters($payload['clusters'], $payload['start_date'] ?? null);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'clusters' => $clustersOut,
+                ],
+            ]);
+        } catch (\Throwable $throwable) {
+            report($throwable);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to optimize route clusters at this time.',
+            ], 500);
+        }
     }
 
     /**

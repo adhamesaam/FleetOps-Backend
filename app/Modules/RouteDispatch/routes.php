@@ -37,7 +37,7 @@ Route::prefix('api/v1/dispatch')->middleware('auth:sanctum')->group(function () 
         Route::post('/{id}/complete', [RouteController::class, 'completeRoute'])->name('dispatch.routes.complete')->where('id', '[0-9]+');
 
         // Optimization & Dispatch Operations
-        Route::post('/{id}/optimize',         [RouteController::class, 'optimizeRoute'])->name('dispatch.routes.optimize')->where('id', '[0-9]+');
+        Route::post('/optimize',[RouteController::class, 'optimizeRoute'])->name('dispatch.routes.optimize');
         Route::post('/{id}/insert-urgent',    [RouteController::class, 'insertUrgentOrder'])->name('dispatch.routes.insert-urgent')->where('id', '[0-9]+');
         Route::post('/{id}/shift-transition', [RouteController::class, 'shiftTransition'])->name('dispatch.routes.shift-transition')->where('id', '[0-9]+');
 

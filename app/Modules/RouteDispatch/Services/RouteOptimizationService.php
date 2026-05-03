@@ -154,6 +154,210 @@ class RouteOptimizationService
         return $clusters;
     }
 
+    private const AVG_SPEED_KMH = 35.0;
+    private const STOP_DURATION_SECONDS = 600;
+
+    /**
+     * Optimize provided clusters (mock implementation for frontend raw payloads)
+     * Accepts clusters in shape: [{zone, orders_ids: [int,...]}]
+     * Returns clusters with ordered_stops and summary metrics.
+     *
+     * @param array $clusters
+     * @return array
+     */
+    public function optimizeClusters(array $clusters, ?string $startDate): array
+    {
+        $startDateTime = $this->parseStartDateTime($startDate);
+
+        $allRequestedOrderIds = [];
+        foreach ($clusters as $cluster) {
+            $orderIds = is_array($cluster['orders_ids'] ?? null) ? $cluster['orders_ids'] : [];
+            foreach ($orderIds as $orderId) {
+                $normalized = (int) $orderId;
+                if ($normalized > 0) {
+                    $allRequestedOrderIds[] = $normalized;
+                }
+            }
+        }
+
+        $ordersById = $this->orderRepository
+            ->findByIds(array_values(array_unique($allRequestedOrderIds)))
+            ->keyBy('OrderID');
+
+        $out = [];
+
+        foreach ($clusters as $cluster) {
+            $zone = $cluster['zone'] ?? ($cluster['zone_id'] ?? null);
+            $orderIds = is_array($cluster['orders_ids'] ?? null) ? $cluster['orders_ids'] : [];
+            $clusterOrderIds = array_values(array_unique(array_filter(
+                array_map('intval', $orderIds),
+                static fn (int $id): bool => $id > 0
+            )));
+
+            $clusterOrders = [];
+            $missingOrderIds = [];
+
+            foreach ($clusterOrderIds as $orderId) {
+                $order = $ordersById->get($orderId);
+                if ($order === null) {
+                    $missingOrderIds[] = $orderId;
+                    continue;
+                }
+
+                $clusterOrders[] = [
+                    'order_id' => (int) $order->OrderID,
+                    'longitude' => isset($order->Longitude) ? (float) $order->Longitude : null,
+                    'latitude' => isset($order->Latitude) ? (float) $order->Latitude : null,
+                ];
+            }
+
+            $orderedOrders = $this->sortOrdersByNearestNeighbor($clusterOrders);
+
+            $orderedStops = [];
+            $distanceMetersTotal = 0.0;
+            $durationSecondsTotal = 0;
+            $previousStop = null;
+            $currentDateTime = clone $startDateTime;
+
+            foreach ($orderedOrders as $index => $orderedOrder) {
+                $legDistanceMeters = 0.0;
+
+                if ($index > 0 && $previousStop !== null) {
+                    $legDistanceMeters = $this->haversineDistanceMeters(
+                        $previousStop['latitude'],
+                        $previousStop['longitude'],
+                        $orderedOrder['latitude'],
+                        $orderedOrder['longitude']
+                    );
+                }
+
+                $legTravelSeconds = (int) round(
+                    $legDistanceMeters / (self::AVG_SPEED_KMH * 1000 / 3600)
+                );
+
+                if ($legTravelSeconds > 0) {
+                    $currentDateTime->modify('+' . $legTravelSeconds . ' seconds');
+                }
+
+                $orderedStops[] = [
+                    'stop_no' => $index + 1,
+                    'order_id' => $orderedOrder['order_id'],
+                    'eta_datetime' => $currentDateTime->format('Y-m-d H:i:s'),
+                    'longitude' => $orderedOrder['longitude'],
+                    'latitude' => $orderedOrder['latitude'],
+                ];
+
+                $distanceMetersTotal += $legDistanceMeters;
+                $durationSecondsTotal += $legTravelSeconds + self::STOP_DURATION_SECONDS;
+                $currentDateTime->modify('+' . self::STOP_DURATION_SECONDS . ' seconds');
+                $previousStop = $orderedOrder;
+            }
+
+            $out[] = [
+                'zone' => $zone,
+                'ordered_stops' => $orderedStops,
+                'estimated_distance_m' => (int) round($distanceMetersTotal),
+                'estimated_duration_s' => $durationSecondsTotal,
+                'missing_order_ids' => $missingOrderIds,
+            ];
+        }
+
+        return $out;
+    }
+
+    private function parseStartDateTime(?string $startDate): \DateTime
+    {
+        if ($startDate === null || trim($startDate) === '') {
+            return new \DateTime();
+        }
+
+        try {
+            return new \DateTime($startDate);
+        } catch (\Exception $e) {
+            return new \DateTime();
+        }
+    }
+
+    /**
+     * @param array<int, array{order_id:int, longitude:float|null, latitude:float|null}> $orders
+     * @return array<int, array{order_id:int, longitude:float|null, latitude:float|null}>
+     */
+    private function sortOrdersByNearestNeighbor(array $orders): array
+    {
+        if (count($orders) <= 1) {
+            return $orders;
+        }
+
+        $withCoordinates = array_values(array_filter(
+            $orders,
+            static fn (array $order): bool => $order['latitude'] !== null && $order['longitude'] !== null
+        ));
+
+        $withoutCoordinates = array_values(array_filter(
+            $orders,
+            static fn (array $order): bool => $order['latitude'] === null || $order['longitude'] === null
+        ));
+
+        if ($withCoordinates === []) {
+            return $orders;
+        }
+
+        $ordered = [];
+        $remaining = $withCoordinates;
+        $current = array_shift($remaining);
+
+        if ($current === null) {
+            return $orders;
+        }
+
+        $ordered[] = $current;
+
+        while ($remaining !== []) {
+            $nearestIndex = 0;
+            $nearestDistance = PHP_FLOAT_MAX;
+
+            foreach ($remaining as $index => $candidate) {
+                $distance = $this->haversineDistanceMeters(
+                    $current['latitude'],
+                    $current['longitude'],
+                    $candidate['latitude'],
+                    $candidate['longitude']
+                );
+
+                if ($distance < $nearestDistance) {
+                    $nearestDistance = $distance;
+                    $nearestIndex = $index;
+                }
+            }
+
+            $current = $remaining[$nearestIndex];
+            $ordered[] = $current;
+            unset($remaining[$nearestIndex]);
+            $remaining = array_values($remaining);
+        }
+
+        return array_merge($ordered, $withoutCoordinates);
+    }
+
+    private function haversineDistanceMeters(?float $lat1, ?float $lon1, ?float $lat2, ?float $lon2): float
+    {
+        if ($lat1 === null || $lon1 === null || $lat2 === null || $lon2 === null) {
+            return 0.0;
+        }
+
+        $earthRadius = 6371000.0;
+        $latDelta = deg2rad($lat2 - $lat1);
+        $lonDelta = deg2rad($lon2 - $lon1);
+
+        $a = sin($latDelta / 2) * sin($latDelta / 2)
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2))
+            * sin($lonDelta / 2) * sin($lonDelta / 2);
+
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earthRadius * $c;
+    }
+
     /**
      * إدراج طلب عاجل في مسار نشط (RD-06 / fn07)
      * @param int $routeId
