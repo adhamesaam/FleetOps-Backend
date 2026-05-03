@@ -141,6 +141,10 @@ class UserService
     {
         return $this->userRepository->getDrivers();
     }
+    public function getDriversByStatus(string $status)
+    {
+        return $this->userRepository->getDriversByStatus($status);
+    }
     public function getDispatchers()
     {
         return $this->userRepository->getDispatchers();

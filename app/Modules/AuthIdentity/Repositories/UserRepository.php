@@ -11,6 +11,7 @@ namespace App\Modules\AuthIdentity\Repositories;
 
 use App\Modules\Shared\Repositories\BaseRepository;
 use App\Modules\AuthIdentity\Models\User;
+use App\Modules\AuthIdentity\Models\Driver;
 use Illuminate\Database\Eloquent\Collection;
 
 class UserRepository extends BaseRepository
@@ -41,8 +42,20 @@ class UserRepository extends BaseRepository
      */
     public function getDrivers(): Collection
     {
-        return $this->model->active()->byRole('Driver')->get();
+        return Driver::query()
+            ->with('user:user_id,name,email,phone_no')
+            ->get();
     }
+
+    /**
+     * جلب السائقين حسب الحالة (نشط/غير نشط)
+     */
+    public function getDriversByStatus(string $status): Collection
+    {
+        return Driver::query()->where('status', $status)
+            ->with('user:user_id,name,email,phone_no')          
+            ->get();
+    }   
 
     /**
      * جلب الموزعين

@@ -106,6 +106,18 @@ class UserController extends Controller
     {
         return response()->json(['success' => true, 'data' => $this->userService->getDrivers()], 200);
     }
+    public function driversByStatus(string $status): JsonResponse
+    {
+        try {
+            $validStatuses = ['Available', 'available', 'OffShift', 'offshift', 'OnShift', 'onshift'];
+            if (!in_array($status, $validStatuses)) {
+                return response()->json(['success' => false, 'message' => 'Invalid status value'], 400);
+            }
+            return response()->json(['success' => true, 'data' => $this->userService->getDriversByStatus($status)], 200);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'حدث خطأ: ' . $e->getMessage()], 500);
+        }
+    }
     public function dispatchers(): JsonResponse
     {
         return response()->json(['success' => true, 'data' => $this->userService->getDispatchers()], 200);

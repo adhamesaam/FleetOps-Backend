@@ -69,6 +69,9 @@ Route::prefix('api/v1')->group(function () {
             // Specialized routes MUST come before /{id} to avoid conflicts
             Route::get('/active', [UserController::class, 'active'])->name('users.active');
             Route::get('/role/drivers', [UserController::class, 'drivers'])->name('users.drivers');
+            Route::get('/drivers/{status}', [UserController::class, 'driversByStatus'])
+                ->name('users.drivers-by-status');
+
             Route::get('/role/dispatchers', [UserController::class, 'dispatchers'])->name('users.dispatchers');
             Route::get('/role/fleet-managers', [UserController::class, 'fleetManagers'])->name('users.fleet-managers');
             Route::get('/role/mechanics', [UserController::class, 'mechanics'])->name('users.mechanics');
