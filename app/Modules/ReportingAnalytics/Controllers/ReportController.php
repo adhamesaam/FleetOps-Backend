@@ -14,6 +14,8 @@ use App\Modules\ReportingAnalytics\Services\ReportService;
 use App\Modules\ReportingAnalytics\Services\KpiService;
 use App\Modules\ReportingAnalytics\Repositories\DriverPerformanceRepository;
 use App\Modules\ReportingAnalytics\Requests\KpiFilterRequest;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -39,10 +41,42 @@ class ReportController extends Controller
      */
     public function dailyDashboard(Request $request): JsonResponse
     {
-        // TODO: Get daily operations dashboard
-        // $date = $request->date ?? now()->toDateString()
-        // $data = $this->reportService->getDailyDashboard($date)
-        // return response()->json(['success' => true, 'data' => $data])
+        try {
+            // Validate date format if provided
+            // $request->validate([
+            //     'date' => 'nullable|date|date_format:Y-m-d',
+            // ]);
+            // Get date from request or default to today
+            // Use filled() to avoid passing null to the strictly typed getDailyDashboard() method
+            $date = $request->filled('date') ? $request->input('date') : now()->toDateString();
+
+            // Fetch dashboard data from service
+            $data = $this->reportService->getDailyDashboard($date);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم جلب البيانات بنجاح',
+                'data'    => $data,
+            ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'خطأ في التحقق من البيانات: ' . $e->getMessage(),
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            // Log the error for debugging
+            Log::error('Daily Dashboard Error: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file'      => $e->getFile(),
+                'line'      => $e->getLine(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'خطأ: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
