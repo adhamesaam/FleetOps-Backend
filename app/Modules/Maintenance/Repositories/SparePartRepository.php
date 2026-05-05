@@ -12,6 +12,7 @@ namespace App\Modules\Maintenance\Repositories;
 use App\Modules\Shared\Repositories\BaseRepository;
 use App\Modules\Maintenance\Models\SparePart;
 use Illuminate\Database\Eloquent\Collection;
+use Exception;
 
 class SparePartRepository extends BaseRepository
 {
@@ -27,12 +28,25 @@ class SparePartRepository extends BaseRepository
 
     public function deductStock(int $partId, int $quantity): bool
     {
-        // TODO: Deduct quantity from stock
-        // 1. Get current stock
-        // 2. Validate: if stock < quantity → throw Exception('المخزون غير كافي')
-        // 3. $this->model->where('part_id', $partId)->decrement('stock_quantity', $quantity)
-        // 4. Check if new stock <= minimum → trigger reorder alert
-        // 5. Return true
+        $part = $this->model->where('part_id', $partId)->lockForUpdate()->first();
+
+        if (!$part) {
+            throw new Exception("قطعة الغيار غير موجودة (ID: {$partId})");
+        }
+
+        if ($part->stock_quantity < $quantity) {
+            throw new Exception("المخزون غير كافي للقطعة: {$part->name} (متاح: {$part->stock_quantity}, مطلوب: {$quantity})");
+        }
+
+        $this->model->where('part_id', $partId)->decrement('stock_quantity', $quantity);
+
+        // Reload to get updated stock and check reorder threshold
+        $part->refresh();
+        if ($part->stock_quantity <= $part->minimum_stock) {
+            logger()->warning("[SparePartRepository] قطعة غيار تحتاج إعادة طلب: {$part->name} (متبقي: {$part->stock_quantity})");
+        }
+
+        return true;
     }
 
     public function addStock(int $partId, int $quantity): bool
