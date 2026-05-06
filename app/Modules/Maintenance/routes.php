@@ -11,8 +11,14 @@ use Illuminate\Support\Facades\Route;
 use App\Modules\Maintenance\Controllers\WorkOrderController;
 use App\Modules\Maintenance\Controllers\SparePartController;
 use App\Modules\Maintenance\Controllers\VehicleInspectionController;
+use App\Modules\Maintenance\Controllers\DashboardController;
 
 Route::prefix('api/v1/maintenance')->middleware('auth:sanctum')->group(function () {
+
+    // =====================================================================
+    // Dashboard
+    // =====================================================================
+    Route::get('/dashboard-summary', [DashboardController::class, 'getDashboardSummary'])->name('maintenance.dashboard-summary');
 
     // =====================================================================
     // Work Orders (MT-02/03/04/06)
