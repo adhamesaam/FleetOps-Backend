@@ -135,8 +135,20 @@ class RouteController extends Controller
      */
     public function startRoute(int $id): JsonResponse
     {
-        // TODO: $route = $this->routeService->startRoute($id)
-        // return response()->json(['success' => true, 'message' => 'تم بدء المسار', 'data' => $route]);
+        try {
+            $route = $this->routeService->startRoute($id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم بدء المسار بنجاح',
+                'data' => $route
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'خطأ: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -145,7 +157,20 @@ class RouteController extends Controller
      */
     public function completeRoute(int $id): JsonResponse
     {
-        // TODO: $route = $this->routeService->completeRoute($id)
+        try {
+            $route = $this->routeService->completeRoute($id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إنهاء المسار بنجاح',
+                'data' => $route
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'خطأ: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -201,6 +226,19 @@ class RouteController extends Controller
      */
     public function driverRoutes(int $driverId): JsonResponse
     {
-        // TODO: return all routes for given driver (paginated, ordered by date)
+        try {
+            $routes = $this->routeService->getDriverRoutes($driverId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Driver routes retrieved successfully.',
+                'data' => $routes
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

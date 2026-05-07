@@ -27,7 +27,10 @@ class RouteRepository extends BaseRepository
 
     public function getDriverActiveRoute(int $driverId): ?Route
     {
-        // TODO: return $this->model->active()->forDriver($driverId)->with('stops')->first();
+        return
+         $this->model->where('status','!=','completed')
+         ->where('status','!=','cancelled')
+         ->where('driver_id', $driverId)->with('stops')->first();
     }
 
     public function getRouteWithStops(int $routeId): ?Route
@@ -40,4 +43,9 @@ class RouteRepository extends BaseRepository
         // TODO: $this->model->where('route_id', $routeId)->increment('version');
         // return true;
     }
+
+    public function getDriverRoutes(int $driverId): Collection
+    {
+        return $this->model->where('status','!=','completed')->where('status','!=','cancelled')->where('driver_id', $driverId)->with('stops')->get();
+    }   
 }

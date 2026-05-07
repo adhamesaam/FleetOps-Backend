@@ -10,6 +10,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Modules\ReportingAnalytics\Controllers\KpiController;
 use App\Modules\ReportingAnalytics\Controllers\ReportController;
+use App\Modules\ReportingAnalytics\Controllers\incidentReportController;
 
 Route::prefix('api/v1/analytics')->middleware('auth:sanctum')->group(function () {
 
@@ -47,5 +48,8 @@ Route::prefix('api/v1/analytics')->middleware('auth:sanctum')->group(function ()
 
         // POST /api/v1/analytics/reports/export  (AN-06 / fn42)
         Route::post('/export',           [ReportController::class, 'export'])->name('analytics.reports.export');
+
+        // POST /api/v1/analytics/reports/incidents-reports 
+        Route::post('/incidents-reports', [incidentReportController::class, 'createIncidentReport'])->name('analytics.reports.incidents-reports');
     });
 });

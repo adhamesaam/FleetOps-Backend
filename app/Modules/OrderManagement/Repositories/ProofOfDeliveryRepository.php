@@ -26,7 +26,7 @@ class ProofOfDeliveryRepository extends BaseRepository
      */
     public function findByOrderId(int $orderId): ?ProofOfDelivery
     {
-        // TODO: return $this->model->where('order_id', $orderId)->first();
+        return $this->model->where('order_id', $orderId)->first();
     }
 
     /**
@@ -37,9 +37,9 @@ class ProofOfDeliveryRepository extends BaseRepository
      */
     public function getForDriverOnDate(int $driverId, string $date)
     {
-        // TODO: return $this->model
-        //     ->where('driver_id', $driverId)
-        //     ->whereDate('delivered_at', $date)
-        //     ->get();
+        return $this->model
+            ->where('driver_id', $driverId)
+            ->whereDate('delivered_at', $date)
+            ->get();
     }
 }

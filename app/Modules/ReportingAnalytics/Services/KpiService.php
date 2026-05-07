@@ -22,12 +22,53 @@ class KpiService
      */
     public function calculateOnTimeRate(string $periodStart, string $periodEnd, ?int $driverId = null): array
     {
-        // TODO: Calculate on-time delivery rate (reads from READ REPLICA)
         // 1. Query orders in period (status=delivered)
-        // 2. Count orders where actual_arrival <= promised_window_end
-        // 3. on_time_percentage = (on_time_count / total_count) * 100
+        $query = \App\Modules\OrderManagement\Models\Order::query()
+            ->where('Status', 'delivered')
+            ->whereBetween('DeliveredAt', [$periodStart, $periodEnd]);
+
+        if ($driverId) {
+            $query->where('DriverID(FK)', $driverId);
+        }
+
+        // Calculate total count
+        $totalCount = $query->count();
+
+        $onTimeCount = 0;
+        $onTimePercentage = 0.0;
+
+        if ($totalCount > 0) {
+            // 2. Count orders where actual_arrival <= promised_window_end
+            $onTimeCount = (clone $query)
+                ->whereColumn('DeliveredAt', '<=', 'PromisedWindow')
+                ->count();
+
+            // 3. on_time_percentage = (on_time_count / total_count) * 100
+            $onTimePercentage = round(($onTimeCount / $totalCount) * 100, 2);
+        }
+
         // 4. Save snapshot to kpi_snapshots table
+        \App\Modules\ReportingAnalytics\Models\KpiSnapshot::create([
+            'metric_name' => 'on_time_delivery_rate',
+            'metric_value' => $onTimePercentage,
+            'metric_unit' => 'percentage',
+            'period_type' => 'custom', // Defaulting to custom for ad-hoc periods
+            'period_start' => $periodStart,
+            'period_end' => $periodEnd,
+            'entity_type' => $driverId ? 'driver' : 'fleet',
+            'entity_id' => $driverId,
+            'breakdown' => [
+                'total' => $totalCount,
+                'on_time' => $onTimeCount
+            ]
+        ]);
+
         // 5. Return result
+        return [
+            'on_time_percentage' => $onTimePercentage,
+            'total' => $totalCount,
+            'on_time' => $onTimeCount,
+        ];
     }
 
     /**

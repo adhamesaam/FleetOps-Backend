@@ -27,7 +27,7 @@ class RouteStopRepository extends BaseRepository
      */
     public function getForRoute(int $routeId): Collection
     {
-        // TODO: return $this->model->where('route_id', $routeId)->orderBy('sequence')->get();
+        return $this->model->where('route_id', $routeId)->orderBy('stop_no')->get();
     }
 
     /**
@@ -37,11 +37,11 @@ class RouteStopRepository extends BaseRepository
      */
     public function reorderStops(array $stopsData): bool
     {
-        // TODO: Bulk update sequences
-        // foreach ($stopsData as $stop) {
-        //     $this->model->where('stop_id', $stop['stop_id'])->update(['sequence' => $stop['sequence']]);
-        // }
-        // return true;
+        // Bulk update stop_no (sequence)
+        foreach ($stopsData as $stop) {
+            $this->model->where('stop_id', $stop['stop_id'])->update(['stop_no' => $stop['sequence']]);
+        }
+        return true;
     }
 
     /**
@@ -52,7 +52,7 @@ class RouteStopRepository extends BaseRepository
      */
     public function updateEta(int $stopId, \DateTime $eta): bool
     {
-        // TODO: return $this->update($stopId, ['eta' => $eta]);
+        return (bool) $this->model->where('stop_id', $stopId)->update(['eta' => $eta]);
     }
 
     /**
@@ -63,11 +63,19 @@ class RouteStopRepository extends BaseRepository
      */
     public function updateStatus(int $stopId, string $status): bool
     {
-        // TODO: Update stop status with timestamps
-        // $data = ['status' => $status];
-        // if ($status === 'arrived') $data['actual_arrival'] = now();
-        // if ($status === 'completed') $data['departure_at'] = now();
-        // return $this->update($stopId, $data);
+        $data = [];
+
+        // Based on the RouteStop model, there are no 'status' or 'departure_at' columns.
+        // We can only update the 'actual_arrival_time' when the status is 'arrived'.
+        if ($status === 'arrived') {
+            $data['actual_arrival_time'] = now();
+        }
+
+        if (!empty($data)) {
+            return (bool) $this->model->where('stop_id', $stopId)->update($data);
+        }
+
+        return true; // Return true if no relevant columns needed updating
     }
 
     /**

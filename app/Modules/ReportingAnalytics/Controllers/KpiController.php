@@ -39,9 +39,20 @@ class KpiController extends Controller
      */
     public function onTimeRate(KpiFilterRequest $request): JsonResponse
     {
-        // TODO: $result = $this->kpiService->calculateOnTimeRate($request->period_start, $request->period_end, $request->driver_id)
-        // return response()->json(['success' => true, 'data' => $result])
-    }
+        try {
+            $validated = $request->validated();
+            $driverId = isset($validated['driver_id']) ? (int) $validated['driver_id'] : null;
+
+            $result = $this->kpiService->calculateOnTimeRate(
+                $validated['period_start'], 
+                $validated['period_end'], 
+                $driverId
+            );
+            return response()->json(['success' => true, 'data' => $result]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }  
 
     /**
      * نقاط أداء السائق (AN-02 / fn22)

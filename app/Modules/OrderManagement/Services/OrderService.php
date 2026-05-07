@@ -71,11 +71,9 @@ class OrderService
      */
     public function updateOrderStatus(int $orderId, string $newStatus, array $extraData = [])
     {
-        // TODO: Update order status via state machine
-        // 1. $this->orderRepository->updateStatus($orderId, $newStatus) (validates transition)
-        // 2. If failed: save failure_reason and failure_reason_code from taxonomy
-        // 3. Fire event: OrderStatusChanged → triggers notifications
-        // 4. Return updated order
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($orderId, $newStatus, $extraData) {
+            return $this->orderRepository->updateStatus($orderId, $newStatus, $extraData);
+        });
     }
 
     /**
@@ -87,11 +85,23 @@ class OrderService
      */
     public function verifyQrCode(int $orderId, string $scannedQr): bool
     {
-        // TODO: Verify QR/Barcode
-        // 1. Get order: $order = $this->orderRepository->findByIdOrFail($orderId)
-        // 2. Compare scanned QR with stored QR: $order->qr_code === $scannedQr
-        // 3. If mismatch → throw Exception('رمز QR غير صحيح')
-        // 4. Return true
+        $order = $this->orderRepository->findByIdOrFail($orderId);
+
+        // Only allow QR verification for orders that are out for active delivery
+        $deliverableStatuses = ['InTransit', 'Out for Delivery'];
+        if (!in_array($order->Status, $deliverableStatuses)) {
+            throw new Exception(
+                "لا يمكن التحقق من QR Code للطلب بحالة: [{$order->Status}]. " .
+                "الحالات المسموحة: " . implode(', ', $deliverableStatuses)
+            );
+        }
+
+        // QR codes encode the OrderID (matches LiveTrackingLink pattern: /track/{OrderID})
+        if ((string) $order->OrderID !== trim($scannedQr)) {
+            throw new Exception("رمز QR غير صحيح. يرجى إعادة المسح.");
+        }
+
+        return true;
     }
 
     /**
@@ -119,5 +129,15 @@ class OrderService
     public function getDriverOrders(int $driverId)
     {
         // TODO: return $this->orderRepository->getForDriver($driverId);
+    }
+
+    /**
+     * Get cash orders for a specific driver
+     * @param int $driverId
+     * @return Collection
+     */
+    public function getCashOrdersForDriver(int $driverId)
+    {
+        return $this->orderRepository->cashOrders($driverId);
     }
 }

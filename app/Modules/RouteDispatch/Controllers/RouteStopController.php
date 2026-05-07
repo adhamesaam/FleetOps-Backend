@@ -35,9 +35,20 @@ class RouteStopController extends Controller
      */
     public function index(int $routeId): JsonResponse
     {
-        // TODO: return stops for route ordered by sequence
-        // $stops = $this->stopRepository->getForRoute($routeId);
-        // return response()->json(['success' => true, 'data' => $stops]);
+        try {
+            $stops = $this->stopRepository->getForRoute($routeId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Route stops retrieved successfully.',
+                'data' => $stops
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -59,10 +70,27 @@ class RouteStopController extends Controller
      */
     public function updateStatus(int $stopId, Request $request): JsonResponse
     {
-        // TODO: Update stop status
-        // 1. Validate status: 'required|in:arrived,completed,skipped'
-        // 2. $this->stopRepository->updateStatus($stopId, $request->status)
-        // 3. Return updated stop
+        $validated = $request->validate([
+            'status' => 'required|string|in:arrived,completed,skipped'
+        ]);
+
+        try {
+            $this->stopRepository->updateStatus($stopId, $validated['status']);
+
+            // Fetch the updated stop to return
+            $stop = \App\Modules\RouteDispatch\Models\RouteStop::findOrFail($stopId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Stop status updated successfully.',
+                'data' => $stop
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

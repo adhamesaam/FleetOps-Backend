@@ -32,7 +32,7 @@ class VehicleRepository extends BaseRepository
 
     public function updateStatus(int $vehicleId, string $status): bool
     {
-        // TODO: return $this->update($vehicleId, ['status' => $status]);
+        return (bool) $this->model->where('vehicle_id', $vehicleId)->update(['status' => $status]);
     }
 
     public function lockVehicle(int $vehicleId): bool

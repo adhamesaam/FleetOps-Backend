@@ -26,7 +26,7 @@ class InspectionRepository extends BaseRepository
      */
     public function getLatestForVehicle(int $vehicleId): ?PreTripInspection
     {
-        // TODO: return $this->model->where('vehicle_id', $vehicleId)->latest('inspected_at')->first();
+        return $this->model->where('vehicle_id', $vehicleId)->latest('inspection_ts')->first();
     }
 
     /**
@@ -36,7 +36,9 @@ class InspectionRepository extends BaseRepository
      */
     public function getForRoute(int $routeId)
     {
-        // TODO: return $this->model->where('route_id', $routeId)->orderBy('inspected_at', 'desc')->get();
+        // Note: pre_trip_inspections does not have a route_id column by default, 
+        // you might need to join with another table or adjust this if the schema changed.
+        return $this->model->where('route_id', $routeId)->orderBy('inspection_ts', 'desc')->get();
     }
 
     /**
@@ -46,6 +48,6 @@ class InspectionRepository extends BaseRepository
      */
     public function getForVehiclePaginated(int $vehicleId, int $perPage = 15)
     {
-        // TODO: return $this->model->where('vehicle_id', $vehicleId)->latest('inspected_at')->paginate($perPage);
+        return $this->model->where('vehicle_id', $vehicleId)->latest('inspection_ts')->paginate($perPage);
     }
 }

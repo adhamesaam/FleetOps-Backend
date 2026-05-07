@@ -41,15 +41,56 @@ class OrderRepository extends BaseRepository
      * @param string $newStatus
      * @return bool
      */
-    public function updateStatus(int $orderId, string $newStatus): bool
+    public function updateStatus(int $orderId, string $newStatus, array $extraData = []): Order
     {
-        // TODO: Update order status (idempotent)
-        // 1. Get current order
-        // 2. Validate state transition is allowed (State Machine rules)
-        //    pending → in_transit → delivered | returned | failed
-        // 3. If transition is invalid → throw Exception
-        // 4. Update status
-        // 5. Return true
+        /** @var Order $order */
+        $order = $this->findByIdOrFail($orderId);
+
+        // ── State Machine: allowed transitions (matches DB Status values) ─────
+        // DB statuses: Pending | Assigned | InTransit | Out for Delivery | Delivered | Returned | Failed
+        $allowedTransitions = [
+            'Pending'          => ['Assigned', 'InTransit'],
+            'Assigned'         => ['InTransit', 'Out for Delivery'],
+            'InTransit'        => ['Out for Delivery', 'Delivered', 'Returned', 'Failed'],
+            'Out for Delivery' => ['Delivered', 'Returned', 'Failed'],
+            'Delivered'        => [],   // terminal
+            'Returned'         => [],   // terminal
+            'Failed'           => [],   // terminal
+        ];
+
+        $currentStatus = $order->Status;
+
+        // Normalize API-facing snake_case aliases → exact DB Status strings
+        $statusMap = [
+            'pending'          => 'Pending',
+            'assigned'         => 'Assigned',
+            'in_transit'       => 'InTransit',
+            'intransit'        => 'InTransit',
+            'out_for_delivery' => 'Out for Delivery',
+            'delivered'        => 'Delivered',
+            'returned'         => 'Returned',
+            'failed'           => 'Failed',
+        ];
+        $normalizedNew = $statusMap[strtolower($newStatus)] ?? $newStatus;
+
+        $allowed = $allowedTransitions[$currentStatus] ?? [];
+        if (!in_array($normalizedNew, $allowed)) {
+            throw new \Exception(
+                "Transition not allowed: [{$currentStatus}] → [{$normalizedNew}]. Allowed: " .
+                (empty($allowed) ? 'none (terminal state)' : implode(', ', $allowed))
+            );
+        }
+
+        // ── Build the update payload ──────────────────────────────────────────
+        $updateData = ['Status' => $normalizedNew];
+
+        if ($normalizedNew === 'Delivered') {
+            $updateData['DeliveredAt'] = now();
+        }
+
+        $this->update($orderId, $updateData);
+
+        return $this->findByIdOrFail($orderId);
     }
 
     public function bulkInsert(array $orders): bool
@@ -72,8 +113,15 @@ class OrderRepository extends BaseRepository
 
     public function findByStatus(string $status): Collection
     {
-        return $this->model->where('status', $status)
+        return $this->model->where('Status', $status)
             ->with('customer:customer_id,address', 'customer.user:user_id,name')
+            ->get();
+    }
+
+    public function cashOrders ($driverId){
+        return $this->model
+            ->where('DriverID(FK)', $driverId)
+            ->where('Payment_method', 'cash')
             ->get();
     }
 }

@@ -478,16 +478,13 @@ class RouteService
     }
 
     /**
-     * Get all active routes for a driver
+     * Get all routes for a driver
      * @param int $driverId
      * @return Collection
      */
-    public function getDriverActiveRoutes(int $driverId): Collection
+    public function getDriverRoutes(int $driverId): Collection
     {
-        return Route::where('driver_id', $driverId)
-            ->whereIn('status', ['Planned', 'Active'])
-            ->with(['vehicle', 'stops'])
-            ->get();
+        return $this->routeRepository->getDriverRoutes($driverId);
     }
 
     /**
@@ -524,12 +521,27 @@ class RouteService
      */
     public function startRoute(int $routeId)
     {
-        // TODO: Start route
-        // 1. Get route: must be 'planned'
-        // 2. Update status to 'active' and set started_at = now()
+        $route = Route::findOrFail($routeId);
+
+        if (strtolower($route->status) !== 'planned') {
+            throw new Exception("Only planned routes can be started. Current status: {$route->status}");
+        }
+
+        // 2. Update status to 'active' and set actual_start_time = now()
+        $route->status = 'Active';
+        $route->actual_start_time = Carbon::now();
+        $route->save();
+
         // 3. Update vehicle status to 'in_service'
+        if ($route->vehicle_id) {
+            $this->vehicleRepository->updateStatus($route->vehicle_id, 'in_service');
+        }
+
         // 4. Fire event: RouteStarted ($routeId)
+        // event(new \App\Events\RouteStarted($routeId));
+
         // 5. Return updated route
+        return $route;
     }
 
     /**
@@ -540,12 +552,27 @@ class RouteService
      */
     public function completeRoute(int $routeId)
     {
-        // TODO: Complete route
-        // 1. Get route: must be 'active'
-        // 2. Update status to 'completed' and set completed_at = now()
+        $route = Route::findOrFail($routeId);
+
+        if (strtolower($route->status) !== 'active') {
+            throw new Exception("Only active routes can be completed. Current status: {$route->status}");
+        }
+
+        // 2. Update status to 'completed'
+        // Note: The 'routes' table schema does not have a 'completed_at' or 'actual_end_time' column
+        $route->status = 'Completed';
+        $route->save();
+
         // 3. Update vehicle status to 'available'
+        if ($route->vehicle_id) {
+            $this->vehicleRepository->updateStatus($route->vehicle_id, 'available');
+        }
+
         // 4. Fire event: RouteCompleted ($routeId)
+        // event(new \App\Events\RouteCompleted($routeId));
+
         // 5. Return updated route
+        return $route;
     }
 
     /**

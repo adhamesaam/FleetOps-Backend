@@ -16,36 +16,32 @@ class ProofOfDelivery extends Model
 {
     use HasFactory;
 
-    protected $table = 'proof_of_delivery';
-    protected $primaryKey = 'pod_id';
+    protected $table = 'order';
+    protected $primaryKey = 'OrderID';
     public $incrementing = true;
 
     protected $fillable = [
-        'order_id',
-        'driver_id',
-        'signature_url',    // Azure Blob Storage URL
-        'photo_url',        // Azure Blob Storage URL
-        'lat',
-        'lng',
-        'delivered_at',
-        'customer_name',
-        'customer_signed',
-        'is_safe_drop',     // True if customer was absent
-        'notes',
+        'DriverID(FK)',
+        'digital_signature',    // Azure Blob Storage URL / base64 signature
+        'Latitude',
+        'Longitude',
+        'DeliveredAt',
+        'Status',
     ];
 
     protected $casts = [
-        'lat'            => 'float',
-        'lng'            => 'float',
-        'customer_signed' => 'boolean',
-        'is_safe_drop'   => 'boolean',
-        'delivered_at'   => 'datetime',
-        'created_at'     => 'datetime',
-        'updated_at'     => 'datetime',
+        'Latitude'    => 'float',
+        'Longitude'   => 'float',
+        'DeliveredAt' => 'datetime',
+        'Created_at'  => 'datetime',
+        'UpdatedAt'   => 'datetime',
     ];
+
+    // Disable automatic timestamps — the 'order' table uses non-standard column names
+    public $timestamps = false;
 
     public function order()
     {
-        return $this->belongsTo(Order::class, 'order_id', 'order_id');
+        return $this->belongsTo(Order::class, 'OrderID', 'OrderID');
     }
 }

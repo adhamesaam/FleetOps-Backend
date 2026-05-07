@@ -71,10 +71,32 @@ class OrderController extends Controller
      */
     public function updateStatus(int $id, Request $request): JsonResponse
     {
-        // TODO: Validate status field
-        // $request->validate(['status' => 'required|in:in_transit,delivered,returned,failed', 'failure_reason' => 'required_if:status,failed|string'])
-        // $order = $this->orderService->updateOrderStatus($id, $request->status, $request->all())
-        // return success response
+        $request->validate([
+            'status'         => 'required|in:pending,assigned,in_transit,out_for_delivery,delivered,returned,failed',
+            'failure_reason' => 'required_if:status,failed|string|max:500',
+        ]);
+
+        try {
+            $order = $this->orderService->updateOrderStatus($id, $request->status, $request->all());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تحديث حالة الطلب بنجاح',
+                'data'    => $order,
+            ], 200);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'الطلب غير موجود',
+            ], 404);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
     }
 
     /**
@@ -83,9 +105,32 @@ class OrderController extends Controller
      */
     public function verifyQr(int $id, Request $request): JsonResponse
     {
-        // TODO: Validate qr_code field in request
-        // $this->orderService->verifyQrCode($id, $request->qr_code)
-        // return success response
+        $request->validate([
+            'qr_code' => 'required|string',
+        ]);
+
+        try {
+            $this->orderService->verifyQrCode($id, $request->qr_code);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم التحقق من رمز QR بنجاح',
+                'data'    => ['order_id' => $id, 'verified' => true],
+            ], 200);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'الطلب غير موجود',
+            ], 404);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'data'    => ['order_id' => $id, 'verified' => false],
+            ], 422);
+        }
     }
 
     /**
@@ -121,4 +166,36 @@ class OrderController extends Controller
     {
         // TODO: return orders assigned to specific driver
     }
+
+    /** GET /api/v1/orders/cash */
+        /** GET /api/v1/orders/cash/{driverId} */
+    public function driverCashOrders(int $driverId): JsonResponse
+    {
+        // 1. Validate that the driver exists using the model (since the ID is in the URL)
+        $driver = \App\Modules\AuthIdentity\Models\Driver::find($driverId);
+        
+        if (!$driver) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Driver not found'
+            ], 404);
+        }
+
+        try {
+            // 2. Fetch the orders
+            $orders = $this->orderService->getCashOrdersForDriver($driverId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cash orders retrieved successfully.',
+                'data'    => $orders,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
 }
