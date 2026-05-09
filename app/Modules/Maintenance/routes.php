@@ -15,6 +15,11 @@ use App\Modules\Maintenance\Controllers\VehicleInspectionController;
 Route::prefix('api/v1/maintenance')->middleware('auth:sanctum')->group(function () {
 
     // =====================================================================
+    // Maintenance Vehicles
+    // =====================================================================
+    Route::get('/vehicles', [\App\Modules\RouteDispatch\Controllers\VehicleController::class, 'maintenanceVehicles'])
+        ->name('maintenance.vehicles.index');
+    // =====================================================================
     // Work Orders (MT-02/03/04/06)
     // =====================================================================
     Route::prefix('work-orders')->group(function () {
