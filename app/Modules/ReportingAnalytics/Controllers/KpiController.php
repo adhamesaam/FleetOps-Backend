@@ -30,7 +30,12 @@ class KpiController extends Controller
      */
     public function index(KpiFilterRequest $request): JsonResponse
     {
-        // TODO: return KPI snapshots based on filters
+        try {
+            $data = $this->kpiService->getAnalyticsKpis($request->input('range', '30d'));
+            return response()->json(['success' => true, 'data' => $data]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -39,8 +44,16 @@ class KpiController extends Controller
      */
     public function onTimeRate(KpiFilterRequest $request): JsonResponse
     {
-        // TODO: $result = $this->kpiService->calculateOnTimeRate($request->period_start, $request->period_end, $request->driver_id)
-        // return response()->json(['success' => true, 'data' => $result])
+        try {
+            $result = $this->kpiService->calculateOnTimeRate(
+                $request->period_start, 
+                $request->period_end, 
+                $request->driver_id
+            );
+            return response()->json(['success' => true, 'data' => $result]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -49,8 +62,16 @@ class KpiController extends Controller
      */
     public function driverScore(int $driverId, KpiFilterRequest $request): JsonResponse
     {
-        // TODO: $score = $this->kpiService->calculateDriverPerformanceScore($driverId, $request->period_start, $request->period_end)
-        // return response with score breakdown
+        try {
+            $score = $this->kpiService->calculateDriverPerformanceScore(
+                $driverId, 
+                $request->period_start, 
+                $request->period_end
+            );
+            return response()->json(['success' => true, 'data' => $score]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -164,6 +185,13 @@ class KpiController extends Controller
      */
     public function anomalies(Request $request): JsonResponse
     {
-        // TODO: $anomalies = $this->kpiService->detectAnomalies($request->date ?? today())
+        try {
+            $date = $request->input('date', now()->toDateString());
+            // Mock logic for now as detectAnomalies is not in service
+            $anomalies = []; 
+            return response()->json(['success' => true, 'data' => $anomalies]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 }

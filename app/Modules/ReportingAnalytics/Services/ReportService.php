@@ -373,27 +373,26 @@ class ReportService
 
             // ── 1. Active Routes ─────────────────────────────────────────────────
             $activeRoutes    = Route::query()
-                ->where('status', 'in_progress')
+                ->where('status', 'Active')
                 ->whereDate('scheduled_start_time', $date)
                 ->count();
 
             $yesterdayRoutes = Route::query()
-                ->where('status', 'in_progress')
+                ->where('status', 'Active')
                 ->whereDate('scheduled_start_time', $yesterday->toDateString())
                 ->count();
 
             // ── 2. Orders Today ──────────────────────────────────────────────────
             $ordersToday     = Order::query()
-                ->whereDate('created_at', $date)
+                ->whereDate('Created_at', $date)
                 ->count();
 
             $ordersYesterday = Order::query()
-                ->whereDate('created_at', $yesterday->toDateString())
+                ->whereDate('Created_at', $yesterday->toDateString())
                 ->count();
 
             // ── 3. Open Alerts (unresolved incidents) ────────────────────────────
             $openAlerts = IncidentReport::query()
-                ->whereIn('status', ['open', 'pending', 'investigating'])
                 ->whereDate('incident_ts', '<=', $date)
                 ->count();
 
@@ -403,13 +402,13 @@ class ReportService
 
             // ── 5. Delivery Rate (%) ─────────────────────────────────────────────
             $deliveredToday    = Order::query()
-                ->where('status', 'delivered')
-                ->whereDate('delivered_at', $date)
+                ->where('Status', 'Delivered')
+                ->whereDate('DeliveredAt', $date)
                 ->count();
 
             $deliveredYesterday = Order::query()
-                ->where('status', 'delivered')
-                ->whereDate('delivered_at', $yesterday->toDateString())
+                ->where('Status', 'Delivered')
+                ->whereDate('DeliveredAt', $yesterday->toDateString())
                 ->count();
 
             $deliveryRate          = $ordersToday > 0 ? round(($deliveredToday / $ordersToday) * 100, 1) : 0.0;
@@ -505,7 +504,7 @@ class ReportService
         }
 
         // Calculate distance from routes that have actual distance recorded on this date
-        $totalDistance = Route::whereIn('status', ['completed', 'in_progress'])
+        $totalDistance = Route::whereIn('status', ['Completed', 'Active'])
             ->whereDate('scheduled_start_time', $date)
             ->whereNotNull('total_distance')
             ->sum('total_distance');

@@ -17,8 +17,8 @@ class EmergencyDispatchController extends Controller
     }
 
     /**
-     * GET emergency-incidents
      * List of active vehicle breakdowns and incidents.
+     * GET api/v1/maintenance/emergency/incidents
      */
     public function incidents(): JsonResponse
     {
@@ -40,8 +40,8 @@ class EmergencyDispatchController extends Controller
     }
 
     /**
-     * GET emergency-incident-details
      * Detailed data for a specific incident.
+     * GET api/v1/maintenance/emergency/incident-details/{id}
      */
     public function incidentDetails(int $id): JsonResponse
     {
@@ -63,8 +63,8 @@ class EmergencyDispatchController extends Controller
     }
 
     /**
-     * GET emergency-nearby-mechanics
      * List of mechanics sorted by distance to the incident.
+     * GET api/v1/maintenance/emergency/nearby-mechanics/{id}
      */
     public function nearbyMechanics(int $id): JsonResponse
     {
@@ -86,8 +86,8 @@ class EmergencyDispatchController extends Controller
     }
 
     /**
-     * POST emergency-dispatch-mechanic
      * Dispatches a mechanic and creates an emergency work order.
+     * POST api/v1/maintenance/emergency/dispatch-mechanic/{id}
      */
     public function dispatchMechanic(int $id, Request $request): JsonResponse
     {

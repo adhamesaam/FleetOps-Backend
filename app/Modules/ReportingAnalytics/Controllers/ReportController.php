@@ -85,8 +85,16 @@ class ReportController extends Controller
      */
     public function deliverySummary(KpiFilterRequest $request): JsonResponse
     {
-        // TODO: $summary = $this->reportService->getDeliverySummary($request->period_start, $request->period_end, $request->driver_id)
-        // return response()->json(['success' => true, 'data' => $summary])
+        try {
+            $summary = $this->reportService->getDeliverySummary(
+                $request->period_start, 
+                $request->period_end, 
+                $request->driver_id
+            );
+            return response()->json(['success' => true, 'data' => $summary]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -184,12 +192,23 @@ class ReportController extends Controller
      */
     public function export(Request $request): JsonResponse
     {
-        // TODO: Export report
-        // 1. Validate: report_type (required|in:driver_performance,fleet_kpis,delivery_summary,co2,maintenance_cost)
-        //              format (required|in:xlsx,csv,pdf)
-        //              period_start, period_end (required|date)
-        // 2. $result = $this->reportService->exportReport($request->report_type, $request->all(), $request->format)
-        // 3. return response()->download(storage_path('app/' . $result['file_path']))
-        //    OR return presigned URL for frontend download
+        $request->validate([
+            'report_type' => 'required|string|in:driver_performance,fleet_kpis,delivery_summary,co2,maintenance_cost',
+            'format'      => 'required|string|in:xlsx,csv,pdf',
+            'period_start'=> 'required|date',
+            'period_end'  => 'required|date|after_or_equal:period_start',
+        ]);
+
+        try {
+            $result = $this->reportService->exportReport(
+                $request->report_type, 
+                $request->only(['period_start', 'period_end', 'driver_id', 'vehicle_id']), 
+                $request->format
+            );
+            
+            return response()->json(['success' => true, 'data' => $result]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 }

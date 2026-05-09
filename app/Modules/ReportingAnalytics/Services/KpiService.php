@@ -24,12 +24,31 @@ class KpiService
      */
     public function calculateOnTimeRate(string $periodStart, string $periodEnd, ?int $driverId = null): array
     {
-        // TODO: Calculate on-time delivery rate (reads from READ REPLICA)
-        // 1. Query orders in period (status=delivered)
-        // 2. Count orders where actual_arrival <= promised_window_end
-        // 3. on_time_percentage = (on_time_count / total_count) * 100
-        // 4. Save snapshot to kpi_snapshots table
-        // 5. Return result
+        $query = DB::table('order')
+            ->where('Status', 'Delivered')
+            ->whereBetween('DeliveredAt', [$periodStart, $periodEnd]);
+            
+        if ($driverId) {
+            $query->where('DriverID(FK)', $driverId);
+        }
+        
+        $orders = $query->get();
+        $total = $orders->count();
+        $onTime = 0;
+        
+        foreach ($orders as $order) {
+            if ($order->PromisedWindow && $order->DeliveredAt <= $order->PromisedWindow) {
+                $onTime++;
+            }
+        }
+        
+        $percentage = $total > 0 ? round(($onTime / $total) * 100, 2) : 0;
+        
+        return [
+            'on_time_percentage' => $percentage,
+            'total' => $total,
+            'on_time' => $onTime
+        ];
     }
 
     /**
