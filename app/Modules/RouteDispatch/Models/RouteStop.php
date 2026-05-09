@@ -57,6 +57,6 @@ class RouteStop extends Model
     /** The order to be delivered at this stop */
     public function order()
     {
-        return $this->belongsTo(Order::class, 'order_id', 'order_id');
+        return $this->belongsTo(Order::class, 'order_id', 'OrderID');
     }
 }

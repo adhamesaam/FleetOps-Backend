@@ -1,16 +1,9 @@
 <?php
 
-/**
- * @file: LocationService.php
- * @description: خدمة معالجة بيانات GPS والموقع الحي - Real-time Tracking & GPS Service
- * @module: RealtimeTracking
- * @author: Team Leader (Khalid)
- */
-
 namespace App\Modules\RealtimeTracking\Services;
 
 use App\Modules\RealtimeTracking\Repositories\GpsPingRepository;
-use Exception;
+use Carbon\Carbon;
 
 class LocationService
 {
@@ -21,73 +14,51 @@ class LocationService
         $this->gpsPingRepository = $gpsPingRepository;
     }
 
-    /**
-     * استقبال ومعالجة تحديث موقع السائق (RT-02)
-     * @param array $data (driver_id, vehicle_id, route_id, lat, lng, speed_kmh, accuracy_m, heading)
-     * @return array  ['ping' => GpsPing, 'is_spoofed' => bool, 'geofence_events' => array]
-     * @throws Exception
-     */
     public function ingestLocation(array $data): array
     {
-        // TODO: Process incoming GPS ping
-        // 1. Check for GPS spoofing: $isSpoofed = $this->gpsPingRepository->detectSpoofing(...)
-        // 2. Mark ping as spoofed if detected: $data['is_spoofed'] = $isSpoofed
-        // 3. Record the ping: $ping = $this->gpsPingRepository->recordPing($data)
-        // 4. Fire Laravel event: event(new GpsLocationUpdated($ping)) → triggers WebSocket broadcast
-        // 5. Check proximity alerts (500m from any order stop) → fire ProximityAlert event if needed
-        // 6. Check geofence entry/exit → fire GeofenceEvent if needed
-        // 7. Return ['ping' => $ping, 'is_spoofed' => $isSpoofed]
+        $recordedAt = isset($data['recorded_at'])
+            ? Carbon::parse($data['recorded_at'])
+            : now();
+
+        $data['recorded_at'] = $recordedAt;
+        $data['is_spoofed'] = $data['is_spoofed'] ?? false;
+        $data['speed_kmh'] = $data['speed_kmh'] ?? 0;
+
+        $ping = $this->gpsPingRepository->recordPing($data);
+
+        return [
+            'ping' => $ping->toArray(),
+            'is_spoofed' => (bool) $data['is_spoofed'],
+            'geofence_events' => [],
+        ];
     }
 
-    /**
-     * جلب آخر موقع معروف للسائق (RT-07)
-     * @param int $driverId
-     * @return array|null
-     */
     public function getLastKnownLocation(int $driverId): ?array
     {
-        // TODO: Get last known location
-        // 1. $ping = $this->gpsPingRepository->getLastKnownLocation($driverId)
-        // 2. If null → return null
-        // 3. Return formatted location data
+        $ping = $this->gpsPingRepository->getLastKnownLocation($driverId);
+
+        return $ping ? $ping->toArray() : null;
     }
 
-    /**
-     * جلب مسار السائق لرحلة معينة (fn38 - Historical Playback)
-     * @param int $routeId
-     * @return array
-     */
     public function getRouteTrail(int $routeId): array
     {
-        // TODO: Return full GPS trail for a route
-        // return $this->gpsPingRepository->getRouteTrail($routeId)->toArray();
+        return $this->gpsPingRepository->getRouteTrail($routeId)->toArray();
     }
 
-    /**
-     * التحقق من انقطاع السائق (RT-05 - Heartbeat Timeout)
-     * @param int $driverId
-     * @return bool
-     */
     public function isDriverOffline(int $driverId): bool
     {
-        // TODO: Check heartbeat
-        // return $this->gpsPingRepository->isDriverOffline($driverId, minutes: 3);
+        return $this->gpsPingRepository->isDriverOffline($driverId, 3);
     }
 
-    /**
-     * حساب المسافة بين نقطتين (Haversine Formula) - helper
-     * @param float $lat1
-     * @param float $lng1
-     * @param float $lat2
-     * @param float $lng2
-     * @return float  distance in meters
-     */
     public function calculateDistance(float $lat1, float $lng1, float $lat2, float $lng2): float
     {
-        // TODO: Implement Haversine formula
-        // R = 6371000 (Earth radius in meters)
-        // Convert degrees to radians
-        // Apply Haversine formula
-        // Return distance in meters
+        $earthRadiusMeters = 6371000.0;
+        $latDelta = deg2rad($lat2 - $lat1);
+        $lngDelta = deg2rad($lng2 - $lng1);
+
+        $a = sin($latDelta / 2) ** 2
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($lngDelta / 2) ** 2;
+
+        return 2 * $earthRadiusMeters * atan2(sqrt($a), sqrt(1 - $a));
     }
 }

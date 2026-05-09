@@ -11,6 +11,9 @@ namespace App\Modules\RealtimeTracking\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Modules\AuthIdentity\Models\Driver;
+use App\Modules\RouteDispatch\Models\Route;
+use App\Modules\RouteDispatch\Models\Vehicle;
 
 class GpsPing extends Model
 {
@@ -64,5 +67,20 @@ class GpsPing extends Model
     public function scopeRecent($query, int $minutes = 5)
     {
         return $query->where('recorded_at', '>=', now()->subMinutes($minutes));
+    }
+
+    public function driver()
+    {
+        return $this->belongsTo(Driver::class, 'driver_id', 'driver_id');
+    }
+
+    public function vehicle()
+    {
+        return $this->belongsTo(Vehicle::class, 'vehicle_id', 'vehicle_id');
+    }
+
+    public function route()
+    {
+        return $this->belongsTo(Route::class, 'route_id', 'route_id');
     }
 }

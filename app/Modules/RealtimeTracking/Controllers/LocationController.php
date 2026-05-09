@@ -1,19 +1,11 @@
 <?php
 
-/**
- * @file: LocationController.php
- * @description: متحكم GPS وتحديثات الموقع الحي - Real-time Tracking & GPS Service
- * @module: RealtimeTracking
- * @author: Team Leader (Khalid)
- */
-
 namespace App\Modules\RealtimeTracking\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\RealtimeTracking\Services\LocationService;
 use App\Modules\RealtimeTracking\Requests\LocationRequest;
+use App\Modules\RealtimeTracking\Services\LocationService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class LocationController extends Controller
 {
@@ -24,48 +16,63 @@ class LocationController extends Controller
         $this->locationService = $locationService;
     }
 
-    /**
-     * استقبال تحديث موقع السائق (RT-02)
-     * POST /api/v1/tracking/location
-     */
     public function ingest(LocationRequest $request): JsonResponse
     {
-        // TODO: Process GPS ping
-        // 1. $result = $this->locationService->ingestLocation($request->validated())
-        // 2. Return: response()->json(['success' => true, 'message' => 'تم تسجيل الموقع', 'data' => $result], 201)
-        // 3. Catch Exception
+        try {
+            $result = $this->locationService->ingestLocation($request->validated());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Location recorded successfully',
+                'data' => $result,
+            ], 201);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to record location: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
-    /**
-     * جلب آخر موقع معروف لسائق (RT-07)
-     * GET /api/v1/tracking/drivers/{driverId}/last-location
-     */
     public function lastKnown(int $driverId): JsonResponse
     {
-        // TODO: Get last known location
-        // 1. $location = $this->locationService->getLastKnownLocation($driverId)
-        // 2. Return location or 'لا يوجد موقع محفوظ'
+        $location = $this->locationService->getLastKnownLocation($driverId);
+
+        if (!$location) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No saved location found',
+                'data' => null,
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Last location fetched successfully',
+            'data' => $location,
+        ]);
     }
 
-    /**
-     * جلب مسار رحلة معينة (fn38 - Historical Playback)
-     * GET /api/v1/tracking/routes/{routeId}/trail
-     */
     public function routeTrail(int $routeId): JsonResponse
     {
-        // TODO: Return full GPS trail for route
-        // 1. $trail = $this->locationService->getRouteTrail($routeId)
-        // 2. Return trail data
+        return response()->json([
+            'success' => true,
+            'message' => 'Route trail fetched successfully',
+            'data' => $this->locationService->getRouteTrail($routeId),
+        ]);
     }
 
-    /**
-     * التحقق من حالة السائق (Online/Offline) (RT-05)
-     * GET /api/v1/tracking/drivers/{driverId}/status
-     */
     public function driverStatus(int $driverId): JsonResponse
     {
-        // TODO: Check driver heartbeat status
-        // 1. $isOffline = $this->locationService->isDriverOffline($driverId)
-        // 2. Return status data
+        $isOffline = $this->locationService->isDriverOffline($driverId);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'driver_id' => $driverId,
+                'status' => $isOffline ? 'offline' : 'online',
+                'is_offline' => $isOffline,
+            ],
+        ]);
     }
 }

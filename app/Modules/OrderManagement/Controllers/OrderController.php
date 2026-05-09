@@ -28,22 +28,33 @@ class OrderController extends Controller
         $this->importService = $importService;
     }
 
-    /** GET /api/v1/orders */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        // TODO: return paginated orders (with filters: status, driver_id, route_id, date)
+        $perPage = $request->query('per_page', 15);
+        return response()->json([
+            'success' => true, 
+            'data' => $this->orderService->getAllOrders((int) $perPage)
+        ]);
     }
 
-    /** GET /api/v1/orders/{id} */
     public function show(int $id): JsonResponse
     {
-        // TODO: return order with proofOfDelivery relation
+        try {
+            $order = $this->orderService->getOrderById($id);
+            return response()->json(['success' => true, 'data' => $order]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Order not found'], 404);
+        }
     }
 
-    /** POST /api/v1/orders */
     public function store(OrderRequest $request): JsonResponse
     {
-        // TODO: Create single order → 201
+        try {
+            $order = $this->orderService->createOrder($request->validated());
+            return response()->json(['success' => true, 'data' => $order], 201);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+        }
     }
 
     /** PUT /api/v1/orders/{id} */
@@ -105,9 +116,12 @@ class OrderController extends Controller
      */
     public function bulkImport(BulkImportRequest $request): JsonResponse
     {
-        // TODO: Import orders
-        // $result = $this->importService->importOrders($request->file('file'), $request->format)
-        // return response()->json(['success' => true, 'data' => $result], 201)
+        try {
+            $result = $this->importService->importOrders($request->file('file'), $request->format);
+            return response()->json(['success' => true, 'data' => $result], 201);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+        }
     }
 
     /** GET /api/v1/orders/route/{routeId} */

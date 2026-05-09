@@ -468,7 +468,7 @@ class RouteService
      */
     public function getRoute(int $routeId): Route
     {
-        $route = Route::with(['driver', 'vehicle', 'stops.order'])->find($routeId);
+        $route = Route::with(['driver.user', 'vehicle', 'stops.order.customer.user'])->find($routeId);
 
         if (!$route) {
             throw new Exception("Route with ID {$routeId} not found.");
@@ -488,6 +488,18 @@ class RouteService
             ->whereIn('status', ['Planned', 'Active'])
             ->with(['vehicle', 'stops'])
             ->get();
+    }
+
+    /**
+     * Get all routes (Paginated)
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getAllRoutes(int $perPage = 15)
+    {
+        return Route::with(['driver.user', 'vehicle', 'stops.order.customer.user'])
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
     }
 
     /**

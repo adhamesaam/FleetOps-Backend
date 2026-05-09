@@ -15,7 +15,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('order', function (Blueprint $table) {
-            $table->bigInteger('OrderID')->primary();
+            $table->bigIncrements('OrderID');
             
             $table->bigInteger('DriverID(FK)')->nullable();
             $table->bigInteger('CustomerID(FK)')->nullable();

@@ -31,15 +31,19 @@ class RouteController extends Controller
     /** GET /api/v1/dispatch/routes */
     public function index(): JsonResponse
     {
-        // TODO: return paginated routes
-        // $routes = $this->routeService->getAllRoutes(request('per_page', 15));
-        // return response()->json(['success' => true, 'data' => $routes]);
+        $routes = $this->routeService->getAllRoutes(request('per_page', 15));
+        return response()->json(['success' => true, 'data' => $routes]);
     }
 
     /** GET /api/v1/dispatch/routes/{id} */
     public function show(int $id): JsonResponse
     {
-        // TODO: return single route with stops
+        try {
+            $route = $this->routeService->getRoute($id);
+            return response()->json(['success' => true, 'data' => $route]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 404);
+        }
     }
 
     /** POST /api/v1/dispatch/routes */

@@ -84,6 +84,9 @@ Route::prefix('api/v1/dispatch')->middleware('auth:sanctum')->group(function () 
     // Dispatch & Assignment Operations
     // =====================================================================
 
+    // GET /api/v1/dispatch/live-snapshot  (Unified endpoint for Live Monitoring)
+    Route::get('/live-snapshot', [DispatchController::class, 'liveSnapshot'])->name('dispatch.live-snapshot');
+
     // POST /api/v1/dispatch/assign  (Assign driver + vehicle to route - RD-01 / fn01)
     Route::post('/assign', [DispatchController::class, 'assign'])->name('dispatch.assign');
 
