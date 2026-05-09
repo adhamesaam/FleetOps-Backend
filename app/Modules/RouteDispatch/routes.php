@@ -106,4 +106,12 @@ Route::prefix('api/v1/dispatch')->middleware('auth:sanctum')->group(function () 
     Route::get('/drivers/{driverId}/availability', [DispatchController::class, 'driverAvailability'])
         ->name('dispatch.driver.availability')
         ->where('driverId', '[0-9]+');
+
+    Route::prefix('fleet')->group(function () {
+
+        Route::get('/vehicles', [VehicleController::class, 'fleetVehicles'])
+            ->name('dispatch.fleet.vehicles.fleet-screen');
+        Route::get('/drivers', [VehicleController::class, 'fleetDrivers'])
+            ->name('dispatch.fleet.drivers.fleet-screen');
+    });
 });

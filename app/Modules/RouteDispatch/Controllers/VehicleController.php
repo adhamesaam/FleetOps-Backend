@@ -95,4 +95,99 @@ class VehicleController extends Controller
         // TODO: $this->vehicleService->unlockVehicle($id)
         // return success response
     }
+
+    // =========================================================================
+    // Fleet Management Screen — Added for frontend Fleet & Drivers screens
+    // =========================================================================
+
+    /**
+     * جلب قائمة الأسطول الكاملة لشاشة Fleet Management
+     * GET /api/v1/dispatch/fleet/vehicles
+     *
+     * Response shape:
+     * {
+     *   "success": true,
+     *   "message": "...",
+     *   "data": [ { id, plate, type, max_weight, max_volume,
+     *               odometer, status, mechanic,
+     *               market_value, last_service }, ... ]
+     * }
+     */
+    public function fleetVehicles(): JsonResponse
+    {
+        try {
+            $vehicles = $this->vehicleService->getFleetVehicles();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Fleet vehicles retrieved successfully.',
+                'data'    => $vehicles,   // always an array — never a bare object
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'data'    => [],           // keep data key present for frontend stability
+                'errors'  => $e->getTrace(),
+            ], 500);
+        }
+    }
+
+    /**
+     * جلب قائمة السائقين الكاملة لشاشة Drivers Management
+     * GET /api/v1/dispatch/fleet/drivers
+     *
+     * Response shape:
+     * {
+     *   "success": true,
+     *   "message": "...",
+     *   "data": [ { driver_id, name, initials, status, score, shift,
+     *               license_type, license_no,
+     *               stats: { deliveries, success_rate, on_time_rate, avg_time },
+     *               current_vehicle, current_route }, ... ]
+     * }
+     */
+    public function fleetDrivers(): JsonResponse
+    {
+        try {
+            $drivers = $this->vehicleService->getFleetDrivers();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Fleet drivers retrieved successfully.',
+                'data'    => $drivers,    // always an array — never a bare object
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'data'    => [],           // keep data key present for frontend stability
+                'errors'  => $e->getTrace(),
+            ], 500);
+        }
+    }
+
+    /**
+     * جلب قائمة المركبات لشاشة الصيانة
+     * GET /api/v1/maintenance/vehicles
+     */
+    public function maintenanceVehicles(): JsonResponse
+    {
+        try {
+            $vehicles = $this->vehicleService->getMaintenanceVehicles();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Maintenance vehicles retrieved successfully.',
+                'data'    => $vehicles,
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'data'    => [],
+                'errors'  => $e->getTrace(),
+            ], 500);
+        }
+    }
 }
