@@ -1,10 +1,10 @@
 <?php
 
 /**
- * @file: LocationRequest.php
- * @description: التحقق من بيانات تحديث موقع السائق - Real-time Tracking & GPS Service
- * @module: RealtimeTracking
- * @author: Team Leader (Khalid)
+ * @file LocationRequest.php
+ * @description Form Request for validating incoming driver location updates — RealtimeTracking Module
+ * @module RealtimeTracking
+ * @author Team Leader (Khalid)
  */
 
 namespace App\Modules\RealtimeTracking\Requests;
@@ -18,7 +18,7 @@ class LocationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'driver_id'  => 'required|integer|exists:users,user_id',
+            'driver_id'  => 'required|integer|exists:drivers,driver_id',
             'vehicle_id' => 'required|integer|exists:vehicles,vehicle_id',
             'route_id'   => 'nullable|integer|exists:routes,route_id',
             'lat'        => 'required|numeric|between:-90,90',

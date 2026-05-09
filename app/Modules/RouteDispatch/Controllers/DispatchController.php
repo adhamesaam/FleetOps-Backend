@@ -18,6 +18,8 @@ use App\Modules\RouteDispatch\Requests\ClusterOrdersRequest;
 use App\Modules\RouteDispatch\Requests\PriorityScoreRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Modules\RouteDispatch\Models\Route;
+use App\Modules\RealtimeTracking\Models\GpsPing;
 
 class DispatchController extends Controller
 {
@@ -30,6 +32,48 @@ class DispatchController extends Controller
     ) {
         $this->dispatchService     = $dispatchService;
         $this->optimizationService = $optimizationService;
+    }
+
+    /**
+     * Unified endpoint for Live Monitoring (Routes + Locations)
+     * GET /api/v1/dispatch/live-snapshot
+     */
+    public function liveSnapshot(): JsonResponse
+    {
+        // 1. Get all active routes
+        $routes = Route::with(['driver.user', 'vehicle', 'stops'])
+            ->whereIn('status', ['Planned', 'Active', 'InProgress', 'In_progress'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // 2. Extract driver IDs to fetch their last known locations in one query
+        $driverIds = $routes->pluck('driver_id')->filter()->unique()->toArray();
+
+        // 3. Fetch latest GPS pings for these drivers
+        $latestPings = [];
+        if (!empty($driverIds)) {
+            // Fetch all recent pings for the drivers ordered by time, then take the first per driver
+            $pings = GpsPing::whereIn('driver_id', $driverIds)
+                ->orderBy('recorded_at', 'desc')
+                ->get();
+                
+            $latestPings = $pings->unique('driver_id')->keyBy('driver_id');
+        }
+
+        // 4. Merge location data into routes
+        $routesData = $routes->map(function ($route) use ($latestPings) {
+            $routeArray = $route->toArray();
+            $ping = $latestPings->get($route->driver_id);
+            $routeArray['location'] = $ping ? $ping->toArray() : null;
+            return $routeArray;
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'routes' => $routesData
+            ]
+        ]);
     }
 
     /**

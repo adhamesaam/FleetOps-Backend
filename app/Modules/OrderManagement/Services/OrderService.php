@@ -23,12 +23,12 @@ class OrderService
 
     public function getAllOrders(int $perPage = 15)
     {
-        // TODO: return $this->orderRepository->paginate($perPage);
+        return $this->orderRepository->with(['customer.user', 'vehicle', 'driver.user'])->paginate($perPage);
     }
 
     public function getOrderById(int $id)
     {
-        // TODO: return $this->orderRepository->findByIdOrFail($id);
+        return $this->orderRepository->with(['customer.user', 'vehicle', 'driver.user'])->findOrFail($id);
     }
 
 
@@ -45,10 +45,11 @@ class OrderService
 
     public function createOrder(array $data)
     {
-        // TODO: Create order
-        // 1. Generate QR code: Str::uuid() or barcode library
-        // 2. Set status to 'pending'
-        // 3. return $this->orderRepository->create($data)
+        $data['Status'] = 'Pending';
+        if (!isset($data['digital_signature']) || empty($data['digital_signature'])) {
+            $data['digital_signature'] = \Illuminate\Support\Str::uuid();
+        }
+        return $this->orderRepository->create($data);
     }
 
     public function updateOrder(int $id, array $data)

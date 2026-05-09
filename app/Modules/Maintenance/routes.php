@@ -23,6 +23,16 @@ Route::prefix('api/v1/maintenance')->middleware('auth:sanctum')->group(function 
     Route::get('/dashboard-summary', [DashboardController::class, 'getDashboardSummary'])->name('maintenance.dashboard-summary');
 
     // =====================================================================
+    // Dashboard
+    // =====================================================================
+    Route::get('/dashboard-summary', [DashboardController::class, 'getDashboardSummary'])->name('maintenance.dashboard-summary');
+
+    // =====================================================================
+    // Maintenance Vehicles
+    // =====================================================================
+    Route::get('/vehicles', [\App\Modules\RouteDispatch\Controllers\VehicleController::class, 'maintenanceVehicles'])
+        ->name('maintenance.vehicles.index');
+    // =====================================================================
     // Work Orders (MT-02/03/04/06)
     // =====================================================================
     Route::prefix('work-orders')->group(function () {

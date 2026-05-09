@@ -84,6 +84,9 @@ Route::prefix('api/v1/dispatch')->middleware('auth:sanctum')->group(function () 
     // Dispatch & Assignment Operations
     // =====================================================================
 
+    // GET /api/v1/dispatch/live-snapshot  (Unified endpoint for Live Monitoring)
+    Route::get('/live-snapshot', [DispatchController::class, 'liveSnapshot'])->name('dispatch.live-snapshot');
+
     // POST /api/v1/dispatch/assign  (Assign driver + vehicle to route - RD-01 / fn01)
     Route::post('/assign', [DispatchController::class, 'assign'])->name('dispatch.assign');
 
@@ -106,4 +109,12 @@ Route::prefix('api/v1/dispatch')->middleware('auth:sanctum')->group(function () 
     Route::get('/drivers/{driverId}/availability', [DispatchController::class, 'driverAvailability'])
         ->name('dispatch.driver.availability')
         ->where('driverId', '[0-9]+');
+
+    Route::prefix('fleet')->group(function () {
+
+        Route::get('/vehicles', [VehicleController::class, 'fleetVehicles'])
+            ->name('dispatch.fleet.vehicles.fleet-screen');
+        Route::get('/drivers', [VehicleController::class, 'fleetDrivers'])
+            ->name('dispatch.fleet.drivers.fleet-screen');
+    });
 });

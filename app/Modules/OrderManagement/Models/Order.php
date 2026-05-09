@@ -28,7 +28,7 @@ class Order extends Model
     protected $table      = 'order';
     protected $primaryKey = 'OrderID';
     protected $keyType    = 'int';
-    public $incrementing  = false; // No IDENTITY in DDL — externally assigned
+    public $incrementing  = true; // Enabled auto-increment
 
     const CREATED_AT = 'Created_at';
     const UPDATED_AT = 'UpdatedAt';

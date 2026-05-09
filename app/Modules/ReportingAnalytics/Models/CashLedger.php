@@ -73,11 +73,9 @@ class CashLedger extends Model
 
     /**
      * The order this transaction is for.
-     * NOTE: No FK constraint was defined in the DDL for order_id.
-     *       TODO: Add FK constraint to the migration if referential integrity is needed.
      */
     public function order()
     {
-        return $this->belongsTo(Order::class, 'order_id', 'order_id');
+        return $this->belongsTo(Order::class, 'order_id', 'OrderID');
     }
 }

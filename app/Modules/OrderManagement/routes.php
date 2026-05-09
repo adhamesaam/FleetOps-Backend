@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Route;
 use App\Modules\OrderManagement\Controllers\OrderController;
 use App\Modules\OrderManagement\Controllers\ProofOfDeliveryController;
 use App\Modules\OrderManagement\Controllers\InspectionController;
+use App\Modules\OrderManagement\Controllers\CustomerPortalController;
+use App\Modules\OrderManagement\Controllers\CodController;
 
 Route::prefix('api/v1')->middleware('auth:sanctum')->group(function () {
 
@@ -46,4 +48,60 @@ Route::prefix('api/v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/{orderId}/pod',  [ProofOfDeliveryController::class, 'show'])->name('orders.pod.show')->where('orderId', '[0-9]+');
         Route::post('/{orderId}/pod', [ProofOfDeliveryController::class, 'store'])->name('orders.pod.store')->where('orderId', '[0-9]+');
     });
+
+    // =====================================================================
+    // COD Management
+    // =====================================================================
+    Route::prefix('cod')->group(function () {
+        Route::get('/', [CodController::class, 'index'])->name('cod.index');
+        Route::get('/{id}', [CodController::class, 'show'])->name('cod.show');
+        Route::patch('/{id}/handover', [CodController::class, 'markHandover'])->name('cod.handover');
+    });
 });
+
+// =============================================================================
+// Customer Portal (public – validated by tracking token, no sanctum auth)
+// =============================================================================
+Route::prefix('api/customer-portal')->name('customer-portal.')->group(function () {
+
+    Route::get('orders/{token}/validate',     [CustomerPortalController::class, 'validateToken'])
+        ->name('validate-token')
+        ->middleware('throttle:60,1');
+
+    Route::get('orders/{token}',              [CustomerPortalController::class, 'getOrderDetails'])
+        ->name('order-details')
+        ->middleware('throttle:60,1');
+
+    Route::get('orders/{token}/tracking',     [CustomerPortalController::class, 'getTrackingData'])
+        ->name('tracking')
+        ->middleware('throttle:120,1');
+
+    Route::put('orders/{token}/instructions', [CustomerPortalController::class, 'updateDeliveryInstructions'])
+        ->name('update-instructions')
+        ->middleware('throttle:30,1');
+
+    Route::get('orders/{token}/arrival',      [CustomerPortalController::class, 'getArrivalDetails'])
+        ->name('arrival-details')
+        ->middleware('throttle:60,1');
+
+    Route::post('orders/{token}/ready',       [CustomerPortalController::class, 'confirmCustomerReady'])
+        ->name('confirm-ready')
+        ->middleware('throttle:10,1');
+
+    Route::get('orders/{token}/delivery',     [CustomerPortalController::class, 'getDeliveryProof'])
+        ->name('delivery-proof')
+        ->middleware('throttle:30,1');
+
+    Route::post('orders/{token}/feedback',    [CustomerPortalController::class, 'submitFeedback'])
+        ->name('submit-feedback')
+        ->middleware('throttle:5,1');
+
+    Route::get('orders/{token}/attempt',      [CustomerPortalController::class, 'getUnsuccessfulAttempt'])
+        ->name('unsuccessful-attempt')
+        ->middleware('throttle:30,1');
+
+    Route::get('support',                     [CustomerPortalController::class, 'getSupportInfo'])
+        ->name('support-info')
+        ->middleware('throttle:30,1');
+});
+
