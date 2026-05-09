@@ -9,6 +9,8 @@
 
 namespace App\Modules\ReportingAnalytics\Services;
 
+use App\Modules\Maintenance\Models\WorkOrder;
+use App\Modules\RouteDispatch\Models\Vehicle;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
@@ -208,152 +210,56 @@ class ReportService
     }
 
     /**
-     * تقرير تكاليف الصيانة لأسطول المركبات (analytics-maintenance-cost)
-     * Breaks down maintenance costs between Preventive (routine) and Reactive (emergency/breakdown).
-     *
-     * @param string $periodStart
-     * @param string $periodEnd
-     * @return array  per-month cost breakdown
+     * تقرير تكاليف الصيانة لأسطول المركبات (AN-01)
+     * @param string $periodStart  YYYY-MM-DD
+     * @param string $periodEnd    YYYY-MM-DD
+     * @return array  per-vehicle maintenance costs, sorted by total_cost descending
      */
     public function getMaintenanceCostReport(string $periodStart, string $periodEnd): array
     {
-        $start = Carbon::parse($periodStart)->startOfDay();
-        $end   = Carbon::parse($periodEnd)->endOfDay();
-
-        // Query maintenance_assignments grouped by month and type category
-        $workOrders = DB::table('maintenance_assignments')
-            ->leftJoin('maintenance_parts_used', 'maintenance_assignments.assignment_id', '=', 'maintenance_parts_used.log_id')
-            ->whereBetween('maintenance_assignments.created_at', [$start, $end])
-            ->select(
-                DB::raw("FORMAT(maintenance_assignments.created_at, 'yyyy-MM') as month"),
-                'maintenance_assignments.service_type as type',
-                DB::raw('ISNULL(SUM(maintenance_parts_used.quantity_used * maintenance_parts_used.unit_cost), 0) as total_cost'),
-                DB::raw('COUNT(DISTINCT maintenance_assignments.assignment_id) as order_count')
-            )
-            ->groupBy(DB::raw("FORMAT(maintenance_assignments.created_at, 'yyyy-MM')"), 'maintenance_assignments.service_type')
-            ->orderBy(DB::raw("FORMAT(maintenance_assignments.created_at, 'yyyy-MM')"))
+        // 1. Query work_orders in period with repair_cost, grouped by vehicle_id
+        $rows = WorkOrder::query()
+            ->select('vehicle_id', DB::raw('SUM(repair_cost) as total_cost'), DB::raw('COUNT(*) as work_order_count'))
+            ->whereBetween('opened_at', [$periodStart . ' 00:00:00', $periodEnd . ' 23:59:59'])
+            ->whereNotNull('repair_cost')
+            ->groupBy('vehicle_id')
+            ->orderByDesc('total_cost')
             ->get();
 
-        // Classify: routine = Preventive, emergency/breakdown = Reactive
-        $months = [];
-        foreach ($workOrders as $row) {
-            $category = in_array($row->type, ['oil_change', 'tire_rotation', 'inspection']) ? 'preventive' : 'reactive';
-
-            if (!isset($months[$row->month])) {
-                $months[$row->month] = [
-                    'month'      => $row->month,
-                    'preventive' => 0,
-                    'reactive'   => 0,
-                    'total'      => 0,
-                    'preventive_count' => 0,
-                    'reactive_count'   => 0,
-                ];
-            }
-
-            $months[$row->month][$category]              += round($row->total_cost, 2);
-            $months[$row->month][$category . '_count']   += $row->order_count;
-            $months[$row->month]['total']                 += round($row->total_cost, 2);
+        if ($rows->isEmpty()) {
+            return [];
         }
 
-        $monthlyData = array_values($months);
+        // 2. Load vehicle market values in one query
+        $vehicleIds = $rows->pluck('vehicle_id')->all();
+        $vehicles   = Vehicle::whereIn('vehicle_id', $vehicleIds)
+            ->get(['vehicle_id', 'VehicleModel', 'VehicleLicense', 'MarketValue'])
+            ->keyBy('vehicle_id');
 
-        // Top vehicles by maintenance cost
-        $topVehicles = DB::table('maintenance_assignments')
-            ->join('vehicles', 'maintenance_assignments.vehicle_id', '=', 'vehicles.vehicle_id')
-            ->leftJoin('maintenance_parts_used', 'maintenance_assignments.assignment_id', '=', 'maintenance_parts_used.log_id')
-            ->whereBetween('maintenance_assignments.created_at', [$start, $end])
-            ->select(
-                'vehicles.vehicle_id',
-                'vehicles.VehicleLicense',
-                'vehicles.VehicleType',
-                DB::raw('ISNULL(SUM(maintenance_parts_used.quantity_used * maintenance_parts_used.unit_cost), 0) as total_cost'),
-                DB::raw('COUNT(DISTINCT maintenance_assignments.assignment_id) as wo_count')
-            )
-            ->groupBy('vehicles.vehicle_id', 'vehicles.VehicleLicense', 'vehicles.VehicleType')
-            ->orderByDesc(DB::raw('ISNULL(SUM(maintenance_parts_used.quantity_used * maintenance_parts_used.unit_cost), 0)'))
-            ->limit(10)
-            ->get();
+        // 3. Build result with cost-to-value ratio per vehicle
+        $report = [];
+        foreach ($rows as $row) {
+            $vehicle     = $vehicles->get($row->vehicle_id);
+            $marketValue = $vehicle ? (float) $vehicle->MarketValue : 0.0;
+            $totalCost   = (float) $row->total_cost;
 
-        $grandTotal = round(array_sum(array_column($monthlyData, 'total')), 2);
+            $ratio                = ($marketValue > 0) ? round($totalCost / $marketValue, 4) : null;
+            $recommendReplacement = ($ratio !== null) ? $ratio > 0.40 : false;
 
-        return [
-            'period_start'      => $start->toDateString(),
-            'period_end'        => $end->toDateString(),
-            'grand_total'       => $grandTotal,
-            'total_preventive'  => round(array_sum(array_column($monthlyData, 'preventive')), 2),
-            'total_reactive'    => round(array_sum(array_column($monthlyData, 'reactive')), 2),
-            'monthly_breakdown' => $monthlyData,
-            'top_vehicles'      => $topVehicles,
-        ];
+            $report[] = [
+                'vehicle_id'            => $row->vehicle_id,
+                'vehicle_model'         => $vehicle?->VehicleModel,
+                'vehicle_license'       => $vehicle?->VehicleLicense,
+                'market_value'          => $marketValue,
+                'total_cost'            => $totalCost,
+                'work_order_count'      => (int) $row->work_order_count,
+                'cost_to_value_ratio'   => $ratio,
+                'recommend_replacement' => $recommendReplacement,
+            ];
+        }
+
+        return $report;
     }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Analytics Page — Revenue Chart
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /**
-     * مخطط الإيرادات الشهري (analytics-revenue-chart)
-     * Returns monthly Revenue vs Costs for the last N months.
-     *
-     * Revenue = cash_ledger (collected payments)
-     * Costs   = fuel_audit_logs (total_cost) + work_orders (repair_cost)
-     *
-     * @param int $months  Number of months to include (default 6)
-     * @return array
-     */
-    public function getRevenueChart(int $months = 6): array
-    {
-        $now = Carbon::now();
-        $labels   = [];
-        $revenue  = [];
-        $costs    = [];
-
-        for ($i = $months - 1; $i >= 0; $i--) {
-            $monthStart = $now->copy()->subMonths($i)->startOfMonth();
-            $monthEnd   = $now->copy()->subMonths($i)->endOfMonth();
-            $label      = $monthStart->format('M Y');
-
-            $labels[] = $label;
-
-            // Revenue: collected payments
-            $rev = DB::table('cash_ledger')
-                ->where('payment_status', 'collected')
-                ->whereBetween('transaction_ts', [$monthStart, $monthEnd])
-                ->sum('amount_collected');
-
-            $revenue[] = round($rev, 2);
-
-            // Costs: fuel + maintenance
-            $fuelCost = DB::table('fuel_audit_logs')
-                ->whereBetween('log_ts', [$monthStart, $monthEnd])
-                ->sum('total_cost');
-
-            $maintenanceCost = DB::table('maintenance_assignments')
-                ->leftJoin('maintenance_parts_used', 'maintenance_assignments.assignment_id', '=', 'maintenance_parts_used.log_id')
-                ->whereBetween('maintenance_assignments.created_at', [$monthStart, $monthEnd])
-                ->sum(DB::raw('maintenance_parts_used.quantity_used * maintenance_parts_used.unit_cost'));
-
-            $costs[] = round($fuelCost + $maintenanceCost, 2);
-        }
-
-        // Calculate net profit per month
-        $profit = [];
-        for ($i = 0; $i < count($revenue); $i++) {
-            $profit[] = round($revenue[$i] - $costs[$i], 2);
-        }
-
-        return [
-            'months'  => $months,
-            'labels'  => $labels,
-            'revenue' => $revenue,
-            'costs'   => $costs,
-            'profit'  => $profit,
-        ];
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Daily Dashboard (existing)
-    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * تقرير لوحة قيادة العمليات اليومية

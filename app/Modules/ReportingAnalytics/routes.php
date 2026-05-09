@@ -10,6 +10,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Modules\ReportingAnalytics\Controllers\KpiController;
 use App\Modules\ReportingAnalytics\Controllers\ReportController;
+use App\Modules\ReportingAnalytics\Controllers\FuelController;
 
 Route::prefix('api/v1/analytics')->middleware('auth:sanctum')->group(function () {
 
@@ -66,6 +67,24 @@ Route::prefix('api/v1/analytics')->middleware('auth:sanctum')->group(function ()
 
         // POST /api/v1/analytics/reports/export  (AN-06 / fn42)
         Route::post('/export',           [ReportController::class, 'export'])->name('analytics.reports.export');
+    });
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // Fuel & Efficiency (Fuel Expense Audit + Fuel Efficiency Comparator)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    Route::prefix('fuel')->group(function () {
+        // Tab 1: Fuel Expense Audit — discrepancy detection
+        Route::get('/audit',      [FuelController::class, 'audit'])->name('analytics.fuel.audit');
+
+        // Tab 2: Fuel Efficiency Comparator — km/L per vehicle vs fleet average
+        Route::get('/efficiency', [FuelController::class, 'efficiency'])->name('analytics.fuel.efficiency');
+
+        // Add Fuel Invoice (modal form)
+        Route::post('/invoices',  [FuelController::class, 'storeInvoice'])->name('analytics.fuel.invoices.store');
+
+        // Export CSV (both tabs)
+        Route::get('/export',     [FuelController::class, 'export'])->name('analytics.fuel.export');
     });
 });
 

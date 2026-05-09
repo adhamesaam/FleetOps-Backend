@@ -288,7 +288,8 @@ class ModuleServiceProvider extends ServiceProvider
             \App\Modules\Maintenance\Services\WorkOrderService::class,
             fn($app) => new \App\Modules\Maintenance\Services\WorkOrderService(
                 $app->make(\App\Modules\Maintenance\Repositories\WorkOrderRepository::class),
-                $app->make(\App\Modules\Maintenance\Repositories\SparePartRepository::class)
+                $app->make(\App\Modules\Maintenance\Repositories\SparePartRepository::class),
+                $app->make(\App\Modules\LoggingAudit\Services\AuditService::class)
             )
         );
 
@@ -339,6 +340,20 @@ class ModuleServiceProvider extends ServiceProvider
         $this->app->singleton(
             \App\Modules\ReportingAnalytics\Services\ReportService::class,
             fn() => new \App\Modules\ReportingAnalytics\Services\ReportService()
+        );
+
+        $this->app->singleton(
+            \App\Modules\ReportingAnalytics\Repositories\FuelAuditLogRepository::class,
+            fn() => new \App\Modules\ReportingAnalytics\Repositories\FuelAuditLogRepository(
+                new \App\Modules\ReportingAnalytics\Models\FuelAuditLog()
+            )
+        );
+
+        $this->app->singleton(
+            \App\Modules\ReportingAnalytics\Services\FuelService::class,
+            fn($app) => new \App\Modules\ReportingAnalytics\Services\FuelService(
+                $app->make(\App\Modules\ReportingAnalytics\Repositories\FuelAuditLogRepository::class)
+            )
         );
 
         // ══════════════════════════════════════════════════════════════════════
