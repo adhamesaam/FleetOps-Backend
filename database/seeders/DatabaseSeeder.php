@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,               // Tier 0: users
             VehicleSeeder::class,            // Tier 0: vehicles
             InventorySeeder::class,          // Tier 0: inventory
+            SparePartSeeder::class,          // Tier 0: spare parts
             ProfileSeeder::class,            // Tier 1: customers, drivers, dispatchers, fleet_managers, mechanics
             DriverPerformanceSeeder::class,  // Tier 2: driver_performance (after drivers)
             MaintenanceAssignmentSeeder::class, // Tier 2: maintenance_assignments
