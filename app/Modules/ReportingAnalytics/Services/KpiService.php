@@ -200,22 +200,22 @@ class KpiService
 
         $totalVehicles = DB::table('vehicles')->count();
 
-        $delivered = DB::table('order')->where('Status','delivered')
-            ->whereBetween('DeliveredAt',[$start,$end])->count();
+        $delivered = DB::table('order')->where('Status','Delivered')
+            ->where('DeliveredAt', '>=', $start)->count();
 
-        $prevDelivered = DB::table('order')->where('Status','delivered')
+        $prevDelivered = DB::table('order')->where('Status','Delivered')
             ->whereBetween('DeliveredAt',[$prevStart,$prevEnd])->count();
 
-        $lateDeliveries = DB::table('order')->where('Status', 'delivered')
-            ->whereBetween('DeliveredAt', [$start, $end])
+        $lateDeliveries = DB::table('order')->where('Status', 'Delivered')
+            ->where('DeliveredAt', '>=', $start)
             ->whereNotNull('PromisedWindow')
-            ->whereColumn('DeliveredAt', '>', 'PromisedWindow')
+            ->where('DeliveredAt', '>', DB::raw('DATEADD(hour, 6, PromisedWindow)'))
             ->count();
 
-        $prevLate = DB::table('order')->where('Status', 'delivered')
+        $prevLate = DB::table('order')->where('Status', 'Delivered')
             ->whereBetween('DeliveredAt', [$prevStart, $prevEnd])
             ->whereNotNull('PromisedWindow')
-            ->whereColumn('DeliveredAt', '>', 'PromisedWindow')
+            ->where('DeliveredAt', '>', DB::raw('DATEADD(hour, 6, PromisedWindow)'))
             ->count();
 
 

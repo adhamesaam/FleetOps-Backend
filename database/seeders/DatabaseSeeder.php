@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             IncidentReportSeeder::class,     // Tier 2: incident_reports
             NotificationPreferenceSeeder::class, // Notification preferences
             NotificationSeeder::class,           // Sample notifications
+            WorkOrderSeeder::class,           // Sample notifications
         ]);
     }
 }
